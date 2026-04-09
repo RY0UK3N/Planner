@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0d0d14">
+    <title>Planner Financeiro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar sticky-top planner-nav">
+    <div class="container-xl d-flex justify-content-between align-items-center py-1">
+        <div class="d-flex align-items-center gap-2">
+            <div class="logo-icon"><i class="ph ph-wallet"></i></div>
+            <div>
+                <div class="logo-brand">Planner</div>
+                <div class="logo-sub">Financeiro Pessoal</div>
+            </div>
+        </div>
+        <ul class="nav planner-pill-nav">
+            <li class="nav-item"><a href="#" class="nav-link active" data-target="dashboard">Dashboard</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" data-target="movimentacao">Movimentação</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" data-target="projecao">Projeção</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" data-target="accounts">Contas/Cartões</a></li>
+            <li class="nav-item"><a href="#" class="nav-link" data-target="backup">Backup</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="container-xl py-4">
+
+    <!-- DASHBOARD VIEW -->
+    <div class="content-view" id="dashboard-view">
+
+        <!-- Quick Add Bar -->
+        <div class="quick-add-bar mb-3">
+            <span class="quick-add-label">Adicionar rápido:</span>
+            <button id="qa-income" class="btn-quick income"><i class="ph ph-arrow-circle-up"></i> Entrada</button>
+            <button id="qa-expense" class="btn-quick expense"><i class="ph ph-arrow-circle-down"></i> Gasto</button>
+            <button id="qa-transfer" class="btn-quick transfer"><i class="ph ph-arrows-left-right"></i> Transferência</button>
+        </div>
+
+        <!-- Row 1: Balance + Accounts -->
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-4">
+                <div class="balance-card h-100">
+                    <div class="balance-label">Saldo Geral Consolidado</div>
+                    <div class="balance-amount" id="total-balance">R$ 0,00</div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-8">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
+                            <i class="ph ph-bank text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">Saldos e Faturas</h6>
+                        </div>
+                        <ul class="list-unstyled mb-0 qa-list" id="quick-accounts-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 2: Chart + Metrics -->
+        <div class="row g-3 mb-3">
+            <div class="col-12 col-lg-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-3">
+                            <i class="ph ph-chart-pie text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">Gastos por Categoria</h6>
+                        </div>
+                        <div style="height:200px;position:relative;"><canvas id="summaryChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold">Entradas</h6>
+                            <i class="ph ph-trend-up text-success fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fs-4 fw-bold text-success" id="total-income">R$ 0,00</div>
+                            <div class="small text-muted mt-1">Recebidas no mês</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0 fw-semibold">Despesas</h6>
+                            <i class="ph ph-trend-down text-danger fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="fs-4 fw-bold text-danger" id="total-expense">R$ 0,00</div>
+                            <div class="small text-muted mt-1">Gastos do mês</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Recent + Upcoming -->
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="ph ph-clock-counter-clockwise text-primary"></i>
+                                <h6 class="mb-0 fw-semibold">Transações Recentes</h6>
+                            </div>
+                            <a href="#" class="badge rounded-pill ver-todas-badge text-decoration-none"
+                                onclick="filterDashboardToTransactions('all'); return false;">Ver Todas</a>
+                        </div>
+                        <ul class="list-unstyled mb-0" id="recent-transactions"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-3 border-bottom">
+                            <i class="ph ph-calendar-blank text-primary"></i>
+                            <h6 class="mb-0 fw-semibold">Contas a Pagar (Futuras)</h6>
+                        </div>
+                        <ul class="list-unstyled mb-0" id="upcoming-expenses"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOVIMENTAÇÃO VIEW -->
+    <div class="content-view hidden" id="movimentacao-view">
+        <!-- Unified Month Navigator -->
+        <div class="d-flex justify-content-center mb-4">
+            <div class="month-nav-inline">
+                <button class="btn btn-sm month-arrow" onclick="changeMonth(-1)"><i class="ph ph-caret-left"></i></button>
+                <div class="month-display">
+                    <span class="tiny text-muted uppercase fw-bold d-block mb-1">Mês de Referência</span>
+                    <span class="month-text">Janeiro 2024</span>
+                </div>
+                <button class="btn btn-sm month-arrow" onclick="changeMonth(1)"><i class="ph ph-caret-right"></i></button>
+            </div>
+        </div>
+
+        <!-- View Mode Toggle -->
+        <div class="d-flex justify-content-center mb-4">
+            <div class="btn-group btn-group-sm p-1 bg-dark rounded-pill border border-white-10 shadow-sm">
+                <button class="btn btn-primary rounded-pill px-4 active" id="btn-mov-list" onclick="setMovViewMode('list')">Lista</button>
+                <button class="btn btn-outline-light border-0 rounded-pill px-4" id="btn-mov-sankey" onclick="setMovViewMode('sankey')">Caminho</button>
+                <button class="btn btn-outline-light border-0 rounded-pill px-4" id="btn-mov-sunburst" onclick="setMovViewMode('sunburst')">Solar</button>
+            </div>
+        </div>
+
+        <!-- Mode: List -->
+        <div id="mov-list-container" class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0 fw-bold">Histórico de Transações</h5>
+                    <select id="tx-filter" class="form-select form-select-sm w-auto" onchange="renderMovimentacao()">
+                        <option value="all">Todas</option>
+                        <option value="income">Entradas</option>
+                        <option value="expense">Gastos</option>
+                        <option value="transfer">Transferências</option>
+                    </select>
+                </div>
+
+                <!-- Desktop: tabela -->
+                <div class="table-responsive d-none d-md-block">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr class="text-uppercase small text-muted">
+                                <th>Detalhes</th><th>Conta / Cartão</th><th>Data</th><th>Valor</th><th class="text-end">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="all-transactions-body"></tbody>
+                    </table>
+                </div>
+
+                <!-- Mobile: lista de cards -->
+                <ul class="list-unstyled mb-0 d-md-none" id="all-transactions-mobile"></ul>
+            </div>
+        </div>
+
+        <!-- Mode: Chart (Sankey/Sunburst) -->
+        <div id="mov-chart-container" class="card bg-glass hidden">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                    <h5 class="mb-0 fw-bold" id="mov-chart-title">Fluxo de Caixa</h5>
+                </div>
+                <div id="sankeyChart" style="width: 100%; height: 600px;"></div>
+            </div>
+        </div>
+    </div>
+    <!-- PROJEÇÃO VIEW -->
+    <div class="content-view hidden" id="projecao-view">
+        <div class="card mb-4 bg-glass">
+            <div class="card-body p-4 text-center">
+                <h5 class="fw-bold mb-1">Previsão de Patrimônio</h5>
+                <p class="text-muted small mb-0">Estimativa baseada em gastos fixos, parcelados e receitas recorrentes</p>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-lg-8">
+                <div class="card h-100 bg-glass">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-2 mb-4">
+                            <i class="ph ph-chart-line-up text-primary fs-5"></i>
+                            <h6 class="mb-0 fw-semibold">Evolução do Saldo (Próximos 12 meses)</h6>
+                        </div>
+                        <div id="projectionChart" style="width: 100%; height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card h-100 bg-glass">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-center gap-2 mb-4">
+                            <i class="ph ph-info text-primary fs-5"></i>
+                            <h6 class="mb-0 fw-semibold">Resumo da Projeção</h6>
+                        </div>
+                        <div id="projection-summary-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACCOUNTS VIEW -->
+    <div class="content-view hidden" id="accounts-view">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 fw-bold">Contas Bancárias</h5>
+            <button class="btn btn-outline-primary btn-sm" onclick="openModal('accountModal')">
+                <i class="ph ph-plus me-1"></i>Nova Conta
+            </button>
+        </div>
+        <div class="row g-3 mb-4" id="accounts-grid"></div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 fw-bold">Cartões de Crédito</h5>
+            <button class="btn btn-outline-primary btn-sm" onclick="openModal('cardModal')">
+                <i class="ph ph-plus me-1"></i>Novo Cartão
+            </button>
+        </div>
+        <div class="row g-3" id="cards-grid"></div>
+    </div>
+
+    <!-- BACKUP VIEW -->
+    <div class="content-view hidden" id="backup-view">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-7 col-lg-5">
+                <div class="card text-center">
+                    <div class="card-body py-5 px-4">
+                        <div class="backup-icon-wrap mx-auto mb-4">
+                            <i class="ph ph-floppy-disk"></i>
+                        </div>
+                        <h4 class="fw-bold mb-2">Memory Card</h4>
+                        <p class="text-muted mb-4 small lh-lg">
+                            Seus dados ficam <strong>apenas no Excel</strong>. Salve o arquivo para guardar,
+                            carregue para restaurar. Simples como um memory card de videogame.
+                        </p>
+                        <div class="d-flex gap-3 justify-content-center flex-wrap">
+                            <button class="btn btn-outline-primary" onclick="exportToExcel()">
+                                <i class="ph ph-download-simple me-2"></i>Salvar Backup
+                            </button>
+                            <label class="btn btn-primary" style="cursor:pointer;">
+                                <i class="ph ph-upload-simple me-2"></i>Carregar Planilha
+                                <input type="file" id="excelUpload" accept=".xlsx,.xls" class="d-none" onchange="importFromExcel(event)">
+                            </label>
+                        </div>
+                        <div class="mt-4 pt-3 border-top">
+                            <p class="tiny text-muted">
+                                <i class="ph ph-info me-1"></i>
+                                Os dados são salvos temporariamente na sessão atual.
+                                Exporte regularmente para não perder seu histórico.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</main>
+
+<!-- Month Navigator was here, moved to Transactions view -->
+
+<!-- FLOATING: FAB -->
+<button class="fab-btn" onclick="openTxModal(null)" title="Nova Transação">
+    <i class="ph ph-plus"></i>
+</button>
+
+<!-- Toast Notifications -->
+<div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Entity Detail Modal (Extratos e Faturas) -->
+<div class="modal fade" id="entityDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-bottom py-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div id="detail-icon" class="entity-icon"></div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="detail-title">Nome da Entidade</h5>
+                        <div id="detail-subtitle" class="tiny text-muted uppercase tracking-wider mt-1">Conta Bancária</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- Summary Header -->
+                <div class="detail-summary-header px-4 py-4 mb-2">
+                    <div class="row align-items-center">
+                        <div class="col-12 col-md-6 mb-3 mb-md-0">
+                            <label class="tiny text-muted fw-semibold text-uppercase d-block mb-1" id="summary-label">Saldo Atual</label>
+                            <div class="fs-2 fw-bold" id="summary-amount">R$ 0,00</div>
+                        </div>
+                        <div class="col-12 col-md-6 text-md-end" id="card-period-wrapper">
+                            <label class="tiny text-muted fw-semibold text-uppercase d-block mb-2">Período da Fatura</label>
+                            <select id="detail-period-select" class="form-select form-select-sm w-auto d-inline-block" onchange="window._detailContext?.onPeriodChange(this.value)"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction List Container -->
+                <div class="px-4 pb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Histórico de Lançamentos</h6>
+                        <span id="detail-tx-count" class="badge rounded-pill bg-dark text-muted">0 transações</span>
+                    </div>
+                    <ul class="list-unstyled mb-0" id="detail-tx-list"></ul>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-3 px-4 d-none" id="detail-footer-pay">
+                <div class="w-100">
+                    <div class="pay-fatura-section mt-0">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-semibold">Pagar esta fatura agora?</span>
+                            <span class="badge bg-danger p-1 px-2" id="detail-pay-status">Pendente</span>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <select class="form-select form-select-sm pay-acc-select" id="detail-pay-acc-select">
+                                <option value="">Debitar de...</option>
+                            </select>
+                            <button class="btn btn-sm btn-pay px-3" id="detail-pay-btn">
+                                <i class="ph ph-check-circle me-1"></i> Confirmar Pagamento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+
+<!-- Transaction Modal -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-labelledby="tx-modal-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="tx-modal-title">Nova Transação</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="transactionForm" novalidate>
+                    <input type="hidden" id="tx-id">
+                    <div class="mb-4">
+                        <label class="form-label text-muted small fw-semibold text-uppercase">Tipo</label>
+                        <div class="btn-group w-100 tx-type-group" role="group">
+                            <input type="radio" class="btn-check" name="type" id="type-income" value="income" autocomplete="off" onchange="toggleInstallmentField()">
+                            <label class="btn btn-type btn-type-income" for="type-income">
+                                <i class="ph ph-arrow-circle-up fs-5 d-block mb-1"></i>
+                                <span class="small fw-semibold">Entrada</span>
+                            </label>
+                            <input type="radio" class="btn-check" name="type" id="type-expense" value="expense" autocomplete="off" onchange="toggleInstallmentField()">
+                            <label class="btn btn-type btn-type-expense" for="type-expense">
+                                <i class="ph ph-arrow-circle-down fs-5 d-block mb-1"></i>
+                                <span class="small fw-semibold">Gasto</span>
+                            </label>
+                            <input type="radio" class="btn-check" name="type" id="type-transfer" value="transfer" autocomplete="off" onchange="toggleInstallmentField()">
+                            <label class="btn btn-type btn-type-transfer" for="type-transfer">
+                                <i class="ph ph-arrows-left-right fs-5 d-block mb-1"></i>
+                                <span class="small fw-semibold">Transferência</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="tx-fields-wrapper" class="hidden">
+                        <div id="tx-form-error" class="alert alert-danger py-2 small hidden mb-3" role="alert"></div>
+
+                        <div class="mb-3">
+                            <label for="tx-desc" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-pencil-simple me-1 opacity-75"></i>Descrição
+                            </label>
+                            <input type="text" id="tx-desc" class="form-control" placeholder="Ex: Mercado, Salário, Netflix..." required autocomplete="off">
+                        </div>
+
+                        <div class="mb-3 hidden" id="tx-category-group">
+                            <label for="tx-category" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-tag me-1 opacity-75"></i>Categoria
+                            </label>
+                            <select id="tx-category" class="form-select">
+                                <option value="" disabled selected>Selecione a categoria...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tx-amount" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-currency-dollar me-1 opacity-75"></i>Valor Total
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text currency-prefix">R$</span>
+                                <input type="text" inputmode="numeric" id="tx-amount" class="form-control" placeholder="0,00" required autocomplete="off">
+                            </div>
+                        </div>
+
+                        <div class="mb-3 hidden" id="tx-is-installment-group">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="form-check form-switch pt-1">
+                                        <input class="form-check-input" type="checkbox" id="tx-is-installment" onchange="toggleInstallmentField()">
+                                        <label class="form-check-label text-muted small fw-semibold text-uppercase" for="tx-is-installment">
+                                            <i class="ph ph-splits me-1 opacity-75"></i>Parcelar?
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check form-switch pt-1">
+                                        <input class="form-check-input" type="checkbox" id="tx-is-recurring">
+                                        <label class="form-check-label text-muted small fw-semibold text-uppercase" for="tx-is-recurring">
+                                            <i class="ph ph-repeat me-1 opacity-75"></i>Recorrente?
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 hidden" id="tx-installments-group">
+                            <label for="tx-installments" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-list-numbers me-1 opacity-75"></i>Número de Parcelas
+                            </label>
+                            <input type="number" id="tx-installments" class="form-control" min="2" max="120" value="2" oninput="updateInstallmentHelper()">
+                            <div id="tx-installment-helper" class="installment-preview mt-2 hidden"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="tx-date" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-calendar-blank me-1 opacity-75"></i>Data
+                            </label>
+                            <input type="date" id="tx-date" class="form-control" required onclick="this.showPicker()">
+                        </div>
+
+                        <div class="mb-3" id="tx-account-group">
+                            <label for="tx-account" class="form-label text-muted small fw-semibold text-uppercase" id="tx-account-label">
+                                <i class="ph ph-bank me-1 opacity-75"></i>Conta ou Cartão
+                            </label>
+                            <select id="tx-account" class="form-select" required onchange="toggleInstallmentField()"></select>
+                        </div>
+
+                        <div class="mb-3 hidden" id="tx-destination-group">
+                            <label for="tx-destination" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-arrow-right me-1 opacity-75"></i>Conta de Destino
+                            </label>
+                            <select id="tx-destination" class="form-select"></select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-pill mt-2">
+                            <i class="ph ph-check-circle me-2"></i>Salvar Transação
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Account Modal -->
+<div class="modal fade" id="accountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="acc-modal-title">Nova Conta</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="accountForm" novalidate>
+                    <input type="hidden" id="acc-id">
+                    <div class="mb-3">
+                        <label for="acc-name" class="form-label text-muted small fw-semibold text-uppercase">Nome do Banco / Conta</label>
+                        <input type="text" id="acc-name" class="form-control" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="acc-balance" class="form-label text-muted small fw-semibold text-uppercase">Saldo Inicial</label>
+                        <div class="input-group">
+                            <span class="input-group-text currency-prefix">R$</span>
+                            <input type="text" inputmode="numeric" id="acc-balance" class="form-control" placeholder="0,00" required autocomplete="off">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-pill">Concluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Card Modal (novo campo: dia de fechamento) -->
+<div class="modal fade" id="cardModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="card-modal-title">Novo Cartão de Crédito</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cardForm" novalidate>
+                    <input type="hidden" id="card-id">
+                    <div class="mb-3">
+                        <label for="card-name" class="form-label text-muted small fw-semibold text-uppercase">Bandeira / Nome do Cartão</label>
+                        <input type="text" id="card-name" class="form-control" required placeholder="Ex: Nubank, Itaú Visa...">
+                    </div>
+                    <div class="mb-3">
+                        <label for="card-limit" class="form-label text-muted small fw-semibold text-uppercase">Limite Total</label>
+                        <div class="input-group">
+                            <span class="input-group-text currency-prefix">R$</span>
+                            <input type="text" inputmode="numeric" id="card-limit" class="form-control" placeholder="0,00" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <label for="card-closing" class="form-label text-muted small fw-semibold text-uppercase">
+                                Dia de Fechamento
+                                <span class="badge bg-primary ms-1" style="font-size:0.6rem;">NOVO</span>
+                            </label>
+                            <input type="number" id="card-closing" min="1" max="31" class="form-control" required placeholder="Ex: 25">
+                            <div class="tiny text-muted mt-1">Dia que a fatura fecha</div>
+                        </div>
+                        <div class="col-6">
+                            <label for="card-due" class="form-label text-muted small fw-semibold text-uppercase">Dia de Vencimento</label>
+                            <input type="number" id="card-due" min="1" max="31" class="form-control" required placeholder="Ex: 10">
+                            <div class="tiny text-muted mt-1">Dia que a fatura vence</div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-pill">Concluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Welcome Modal -->
+<div class="modal fade welcome-modal" id="welcomeModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="welcome-header">
+                <div class="welcome-logo"><i class="ph ph-wallet"></i></div>
+                <h2 class="welcome-title">Bem-vindo ao Planner</h2>
+                <p class="text-muted small">Como você deseja carregar seus dados hoje?</p>
+            </div>
+            <div class="welcome-body">
+                <div class="welcome-options">
+                    <div class="welcome-option-card primary" onclick="document.getElementById('excelUpload').click();">
+                        <div class="opt-icon memory-card">
+                            <i class="ph ph-floppy-disk"></i>
+                        </div>
+                        <div class="opt-text">
+                            <h6>Inserir Memory Card</h6>
+                            <p>Carregar dados de um arquivo Excel (.xlsx)</p>
+                        </div>
+                    </div>
+                    <div class="welcome-option-card" data-bs-dismiss="modal">
+                        <div class="opt-icon browser">
+                            <i class="ph ph-globe"></i>
+                        </div>
+                        <div class="opt-text">
+                            <h6>Dados do Navegador</h6>
+                            <p>Continuar com as informações salvas localmente</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Reminder Modal (Exibido via JS se necessário) -->
+<div class="modal fade exit-modal" id="backupReminderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content text-center p-4">
+            <div class="exit-icon-wrap">
+                <i class="ph ph-warning-circle"></i>
+            </div>
+            <h5 class="fw-bold mb-2">Salvar Backup?</h5>
+            <p class="small text-muted mb-4">Você ainda não salvou seu Memory Card nesta sessão. Deseja fazer um backup antes de sair?</p>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary" onclick="exportToExcel(); bootstrap.Modal.getInstance(document.getElementById('backupReminderModal')).hide();">
+                    <i class="ph ph-download-simple me-2"></i>Salvar Backup Agora
+                </button>
+                <button class="btn btn-link btn-sm text-muted text-decoration-none" data-bs-dismiss="modal">Sair sem salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mobile Bottom Tab Bar -->
+<nav class="mobile-tab-bar" id="mobile-tab-bar">
+    <button class="mobile-tab-btn active" data-target="dashboard" onclick="mobileNav(this,'dashboard')" aria-label="Início">
+        <i class="ph ph-squares-four"></i>
+    </button>
+    <button class="mobile-tab-btn" data-target="movimentacao" onclick="mobileNav(this,'movimentacao')" aria-label="Lançamentos">
+        <i class="ph ph-list-bullets"></i>
+    </button>
+    <button class="mobile-tab-btn mobile-tab-add" onclick="openTxModal(null)" aria-label="Adicionar transação">
+        <i class="ph ph-plus"></i>
+    </button>
+    <button class="mobile-tab-btn" data-target="accounts" onclick="mobileNav(this,'accounts')" aria-label="Contas">
+        <i class="ph ph-bank"></i>
+    </button>
+    <button class="mobile-tab-btn" data-target="backup" onclick="mobileNav(this,'backup')" aria-label="Backup">
+        <i class="ph ph-floppy-disk"></i>
+    </button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script src="storage.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
