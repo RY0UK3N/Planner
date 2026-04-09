@@ -1,3 +1,9 @@
+/**
+ * Planner Financeiro Pessoal — storage.js
+ * Copyright (c) 2026 Marcos Luciano Tagliari Junior
+ * Licensed under the MIT License — see LICENSE for details.
+ */
+
 /* ============================================================
    STORAGE.JS — Memory Card Engine
    Dados vivem no Excel (.xlsx). localStorage só como cache

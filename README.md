@@ -163,7 +163,13 @@ Exemplo: Fechamento dia 10
 
 ## 🤝 Contribuindo
 
-Contribuições são bem-vindas!
+Contribuições são bem-vindas! Para mudanças, abra uma issue primeiro para discutir o que você gostaria de alterar.
+
+1. Fork o projeto
+2. Crie sua branch (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Add: nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
 
 ---
 
@@ -171,10 +177,12 @@ Contribuições são bem-vindas!
 
 Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
 
+Copyright (c) 2026 **Marcos Luciano Tagliari Junior**
+
 ---
 
 <div align="center">
 
-Feito com ☕ e JavaScript puro &nbsp;·&nbsp; Nenhum dado seu foi para nenhum servidor
+Feito com ☕ e JavaScript puro por **Marcos Luciano Tagliari Junior** &nbsp;·&nbsp; Nenhum dado seu foi para nenhum servidor
 
 </div>

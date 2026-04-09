@@ -1,3 +1,8 @@
+/**
+ * Planner Financeiro Pessoal — app.js
+ * Copyright (c) 2026 Marcos Luciano Tagliari Junior
+ * Licensed under the MIT License — see LICENSE for details.
+ */
 document.addEventListener('DOMContentLoaded', () => { initApp(); });
 
 let _currentMonth = null;
