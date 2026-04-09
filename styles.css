@@ -527,6 +527,53 @@ input[type="date"] { position: relative; cursor: pointer; }
 .inst-preview { display: flex; align-items: center; gap: 0.6rem; font-size: 0.88rem; }
 .inst-preview i { color: #00c896; font-size: 1rem; flex-shrink: 0; }
 
+/* ===== Transaction Option Chips ===== */
+.tx-options-row {
+    display: flex; gap: 0.6rem; flex-wrap: wrap;
+}
+.tx-option-chip {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 2rem;
+    cursor: pointer;
+    font-size: 0.8rem; font-weight: 600; color: #64748b;
+    background: rgba(255,255,255,0.03);
+    transition: all 0.18s;
+    user-select: none;
+}
+.tx-option-chip input[type="checkbox"] { display: none; }
+.tx-option-chip:hover { border-color: rgba(255,255,255,0.2); color: #94a3b8; }
+.tx-option-chip:has(input:checked) { color: #00c896; border-color: rgba(0,200,150,0.4); background: rgba(0,200,150,0.08); }
+#tx-installment-chip:has(input:checked) { color: #7c83fd; border-color: rgba(124,131,253,0.4); background: rgba(124,131,253,0.08); }
+
+/* ===== Manage Categories Button ===== */
+.btn-manage-cats {
+    background: none; border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.5rem; color: #64748b;
+    font-size: 0.7rem; font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    cursor: pointer; transition: all 0.18s;
+    display: flex; align-items: center; gap: 0.3rem;
+}
+.btn-manage-cats:hover { color: #00c896; border-color: rgba(0,200,150,0.3); }
+
+/* ===== Category Manager List ===== */
+.cat-group-section { margin-bottom: 1rem; }
+.cat-group-label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: #64748b; margin-bottom: 0.4rem;
+    padding: 0 0.25rem;
+}
+.cat-manager-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0.5rem 0.75rem; border-radius: 0.625rem;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 0.35rem;
+}
+.cat-manager-name { font-size: 0.875rem; color: #e2e8f0; }
+
 /* ===== Projection Summary ===== */
 .proj-summary-item {
     display: flex; justify-content: space-between; align-items: center;

@@ -1,8 +1,3 @@
-/**
- * Planner Financeiro Pessoal — app.js
- * Copyright (c) 2026 Marcos Luciano Tagliari Junior
- * Licensed under the MIT License — see LICENSE for details.
- */
 document.addEventListener('DOMContentLoaded', () => { initApp(); });
 
 let _currentMonth = null;
@@ -376,6 +371,8 @@ function setupModalEvents() {
         document.getElementById('tx-modal-title').textContent = 'Nova Transação';
         document.getElementById('tx-fields-wrapper').classList.add('hidden');
         document.getElementById('tx-installment-helper').textContent = '';
+        document.getElementById('tx-options-group').classList.add('hidden');
+        document.getElementById('tx-installments-group').classList.add('hidden');
         clearFormError();
     });
     document.getElementById('accountModal').addEventListener('hidden.bs.modal', () => {
@@ -415,70 +412,182 @@ function _populateAccountDropdowns() {
 }
 
 /* ============================================================
-   TRANSACTION FORM LOGIC
+   CATEGORIAS — Sistema customizável
    ============================================================ */
-const CATEGS_INCOME = ['Salário', 'Rendimentos / Freelance', 'Saldos Iniciais', 'Outros'];
-const CATEGS_EXPENSE_GROUPS = {
+const DEFAULT_CATEGS_INCOME = ['Salário', 'Rendimentos / Freelance', 'Saldos Iniciais', 'Outros'];
+const DEFAULT_CATEGS_EXPENSE = {
     'Contas Fixas': ['Assinaturas', 'Contabilidade', 'Energia / Água', 'Internet / Celular', 'Taxas Bancárias'],
     'Gastos Variáveis': ['Farmácia / Saúde', 'Manutenções', 'Restaurantes / Delivery', 'Supermercado', 'Transporte / Combustível', 'Outros']
 };
+const CAT_STORAGE_KEY = 'planner_categories';
 
-function toggleInstallmentField() {
+function _loadCategories() {
+    try {
+        const raw = localStorage.getItem(CAT_STORAGE_KEY);
+        if (raw) return JSON.parse(raw);
+    } catch(_) {}
+    return {
+        income: [...DEFAULT_CATEGS_INCOME],
+        expense: structuredClone(DEFAULT_CATEGS_EXPENSE)
+    };
+}
+
+function _saveCategories(cats) {
+    try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(cats)); } catch(_) {}
+}
+
+function getCategoriesForType(type) {
+    const cats = _loadCategories();
+    return type === 'income' ? cats.income : cats.expense;
+}
+
+function _buildCategoryOptions(type, currentVal = '') {
+    const cats = getCategoriesForType(type);
+    let html = '<option value="" disabled selected>Selecione a categoria...</option>';
+    if (type === 'income') {
+        cats.forEach(c => html += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
+    } else {
+        Object.entries(cats).forEach(([g, list]) => {
+            html += `<optgroup label="${g}">`;
+            list.forEach(c => html += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
+            html += '</optgroup>';
+        });
+    }
+    return html;
+}
+
+/* ── Category Manager ── */
+let _catTabActive = 'expense';
+
+function openCategoryManager() {
+    _catTabActive = document.querySelector('input[name="type"]:checked')?.value === 'income' ? 'income' : 'expense';
+    renderCategoryManager();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('categoryModal')).show();
+}
+
+function switchCatTab(type) {
+    _catTabActive = type;
+    document.getElementById('cat-tab-expense').classList.toggle('btn-primary', type === 'expense');
+    document.getElementById('cat-tab-expense').classList.toggle('btn-outline-primary', type !== 'expense');
+    document.getElementById('cat-tab-income').classList.toggle('btn-primary', type === 'income');
+    document.getElementById('cat-tab-income').classList.toggle('btn-outline-primary', type !== 'income');
+    renderCategoryManager();
+}
+
+function renderCategoryManager() {
+    const cats = _loadCategories();
+    const groupSelect = document.getElementById('new-cat-group');
+    const list = document.getElementById('cat-manager-list');
+
+    if (_catTabActive === 'income') {
+        groupSelect.innerHTML = '<option value="__income__">Entradas</option>';
+        groupSelect.style.display = 'none';
+        list.innerHTML = cats.income.map((c, i) => `
+            <div class="cat-manager-row">
+                <span class="cat-manager-name">${c}</span>
+                <button type="button" class="btn-icon danger" onclick="deleteCategory('income', null, ${i})" title="Remover">
+                    <i class="ph ph-trash"></i>
+                </button>
+            </div>`).join('');
+    } else {
+        const groups = Object.keys(cats.expense);
+        groupSelect.innerHTML = groups.map(g => `<option value="${g}">${g}</option>`).join('');
+        groupSelect.style.display = '';
+        list.innerHTML = groups.map(g => `
+            <div class="cat-group-section">
+                <div class="cat-group-label">${g}</div>
+                ${cats.expense[g].map((c, i) => `
+                    <div class="cat-manager-row">
+                        <span class="cat-manager-name">${c}</span>
+                        <button type="button" class="btn-icon danger" onclick="deleteCategory('expense', '${g}', ${i})" title="Remover">
+                            <i class="ph ph-trash"></i>
+                        </button>
+                    </div>`).join('')}
+            </div>`).join('');
+    }
+}
+
+function addCustomCategory() {
+    const name = document.getElementById('new-cat-name').value.trim();
+    if (!name) { showToast('Informe o nome da categoria.', 'error'); return; }
+    const cats = _loadCategories();
+    if (_catTabActive === 'income') {
+        if (cats.income.includes(name)) { showToast('Categoria já existe.', 'error'); return; }
+        cats.income.push(name);
+    } else {
+        const group = document.getElementById('new-cat-group').value;
+        if (!cats.expense[group]) cats.expense[group] = [];
+        if (cats.expense[group].includes(name)) { showToast('Categoria já existe.', 'error'); return; }
+        cats.expense[group].push(name);
+    }
+    _saveCategories(cats);
+    document.getElementById('new-cat-name').value = '';
+    renderCategoryManager();
+    showToast(`Categoria "${name}" adicionada!`);
+}
+
+function deleteCategory(type, group, idx) {
+    const cats = _loadCategories();
+    if (type === 'income') {
+        cats.income.splice(idx, 1);
+    } else {
+        cats.expense[group].splice(idx, 1);
+    }
+    _saveCategories(cats);
+    renderCategoryManager();
+}
+
+/* ============================================================
+   TRANSACTION FORM LOGIC
+   ============================================================ */
+function toggleTxFields() {
     const checked = document.querySelector('input[name="type"]:checked');
     if (!checked) return;
     const type = checked.value;
-    const wrapper = document.getElementById('tx-fields-wrapper');
-    wrapper.classList.remove('hidden');
+    document.getElementById('tx-fields-wrapper').classList.remove('hidden');
 
-    const isInstMarkGroup = document.getElementById('tx-is-installment-group');
-    const instGroup = document.getElementById('tx-installments-group');
-    const catGroup = document.getElementById('tx-category-group');
-    const destGroup = document.getElementById('tx-destination-group');
-    const accLabel = document.getElementById('tx-account-label');
-    const catSelect = document.getElementById('tx-category');
-    const accId = document.getElementById('tx-account').value;
-    const isCard = getData().cards.some(c => c.id === accId);
+    const catGroup     = document.getElementById('tx-category-group');
+    const destGroup    = document.getElementById('tx-destination-group');
+    const accLabel     = document.getElementById('tx-account-label');
+    const catSelect    = document.getElementById('tx-category');
+    const optionsGroup = document.getElementById('tx-options-group');
+    const instChip     = document.getElementById('tx-installment-chip');
+    const instGroup    = document.getElementById('tx-installments-group');
     const isInstChecked = document.getElementById('tx-is-installment')?.checked;
 
-    accLabel.textContent = 'Conta ou Cartão';
-
     if (type === 'transfer') {
-        isInstMarkGroup.classList.add('hidden');
-        instGroup.classList.add('hidden');
         catGroup.classList.add('hidden');
         destGroup.classList.remove('hidden');
-        accLabel.textContent = 'Conta de Origem';
+        optionsGroup.classList.add('hidden');
+        instGroup.classList.add('hidden');
+        accLabel.innerHTML = '<i class="ph ph-bank me-1 opacity-75"></i>Conta de Origem';
         catSelect.removeAttribute('required');
         document.getElementById('tx-destination').setAttribute('required', 'true');
     } else {
         catGroup.classList.remove('hidden');
         destGroup.classList.add('hidden');
+        optionsGroup.classList.remove('hidden');
+        accLabel.innerHTML = '<i class="ph ph-bank me-1 opacity-75"></i>Conta ou Cartão';
         catSelect.setAttribute('required', 'true');
         document.getElementById('tx-destination').removeAttribute('required');
 
-        if (type === 'income') {
-            isInstMarkGroup.classList.add('hidden');
+        // Parcelar só aparece para expense
+        instChip.classList.toggle('hidden', type !== 'expense');
+        if (type !== 'expense') {
+            document.getElementById('tx-is-installment').checked = false;
             instGroup.classList.add('hidden');
         } else {
-            isInstMarkGroup.classList.remove('hidden');
             isInstChecked ? instGroup.classList.remove('hidden') : instGroup.classList.add('hidden');
         }
 
-        // Rebuild categories
-        const currentVal = catSelect.value;
-        catSelect.innerHTML = '<option value="" disabled selected>Selecione a categoria...</option>';
-        if (type === 'income') {
-            CATEGS_INCOME.forEach(c => catSelect.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
-        } else {
-            Object.entries(CATEGS_EXPENSE_GROUPS).forEach(([g, cats]) => {
-                catSelect.innerHTML += `<optgroup label="${g}">`;
-                cats.forEach(c => catSelect.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
-                catSelect.innerHTML += '</optgroup>';
-            });
-        }
+        // Rebuild category list
+        catSelect.innerHTML = _buildCategoryOptions(type, catSelect.value);
     }
     updateInstallmentHelper();
 }
+
+// Alias mantido para compatibilidade com eventos inline antigos
+function toggleInstallmentField() { toggleTxFields(); }
 
 function updateInstallmentHelper() {
     const amount = getCurrencyValue('tx-amount');
@@ -658,13 +767,12 @@ function edTx(id) {
 
     _populateAccountDropdowns();
     document.getElementById('tx-fields-wrapper').classList.remove('hidden');
-    toggleInstallmentField();
+    toggleTxFields();
 
     document.getElementById('tx-account').value = tx.accountId;
     if (tx.type === 'transfer' && tx.destinationId) document.getElementById('tx-destination').value = tx.destinationId;
     if (tx.category && tx.category !== 'Transferência') document.getElementById('tx-category').value = tx.category;
 
-    // Restaura o estado de recorrente
     const recurCheck = document.getElementById('tx-is-recurring');
     if (recurCheck) recurCheck.checked = !!tx.recurring;
 
@@ -726,27 +834,31 @@ function renderProjection(data) {
     }
 
     // ── 3. Transações RECORRENTES marcadas explicitamente ──
-    // Agrupa por tipo → soma do valor mensal recorrente
-    let recurIncome  = 0;
-    let recurExpense = 0;
+    // Soma apenas a parcela mensal de cada recorrente (uma ocorrência = um mês)
+    // Deduplica por groupId para não contar cada parcela como recorrente separada
+    const recurIncomeMap  = {};
+    const recurExpenseMap = {};
     data.transactions
-        .filter(t => t.recurring && t.date <= todayStr)
+        .filter(t => t.recurring && !t.groupId)
         .forEach(t => {
-            if (t.type === 'income')  recurIncome  += t.amount;
-            if (t.type === 'expense') recurExpense += t.amount;
+            if (t.type === 'income')  recurIncomeMap[t.id]  = t.amount;
+            if (t.type === 'expense') recurExpenseMap[t.id] = t.amount;
         });
 
-    // ── 4. Transações futuras/parceladas já registradas ──
+    const recurIncome  = Object.values(recurIncomeMap).reduce((s, v) => s + v, 0);
+    const recurExpense = Object.values(recurExpenseMap).reduce((s, v) => s + v, 0);
+
+    // ── 4. Transações futuras/parceladas já registradas (não recorrentes) ──
+    // Parcelas: cada installment já é uma transação individual com data futura
+    // Recorrentes: já tratados acima como base mensal fixa — não entram aqui
     const futureMonthMap = {};
     months.forEach(m => { futureMonthMap[m] = { income: 0, expense: 0 }; });
 
     data.transactions
-        .filter(t => t.type !== 'transfer' && !t.recurring)
+        .filter(t => t.type !== 'transfer' && !t.recurring && t.date > todayStr)
         .forEach(tx => {
             const txMonth = tx.date.slice(0, 7);
             if (!futureMonthMap[txMonth]) return;
-            const isCurrentMonth = txMonth === months[0];
-            if (isCurrentMonth && tx.date <= todayStr) return; // já aconteceu
             if (tx.type === 'income')  futureMonthMap[txMonth].income  += tx.amount;
             if (tx.type === 'expense') futureMonthMap[txMonth].expense += tx.amount;
         });

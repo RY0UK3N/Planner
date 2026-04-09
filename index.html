@@ -379,20 +379,22 @@
             <div class="modal-body">
                 <form id="transactionForm" novalidate>
                     <input type="hidden" id="tx-id">
+
+                    <!-- Tipo -->
                     <div class="mb-4">
                         <label class="form-label text-muted small fw-semibold text-uppercase">Tipo</label>
                         <div class="btn-group w-100 tx-type-group" role="group">
-                            <input type="radio" class="btn-check" name="type" id="type-income" value="income" autocomplete="off" onchange="toggleInstallmentField()">
+                            <input type="radio" class="btn-check" name="type" id="type-income" value="income" autocomplete="off" onchange="toggleTxFields()">
                             <label class="btn btn-type btn-type-income" for="type-income">
                                 <i class="ph ph-arrow-circle-up fs-5 d-block mb-1"></i>
                                 <span class="small fw-semibold">Entrada</span>
                             </label>
-                            <input type="radio" class="btn-check" name="type" id="type-expense" value="expense" autocomplete="off" onchange="toggleInstallmentField()">
+                            <input type="radio" class="btn-check" name="type" id="type-expense" value="expense" autocomplete="off" onchange="toggleTxFields()">
                             <label class="btn btn-type btn-type-expense" for="type-expense">
                                 <i class="ph ph-arrow-circle-down fs-5 d-block mb-1"></i>
                                 <span class="small fw-semibold">Gasto</span>
                             </label>
-                            <input type="radio" class="btn-check" name="type" id="type-transfer" value="transfer" autocomplete="off" onchange="toggleInstallmentField()">
+                            <input type="radio" class="btn-check" name="type" id="type-transfer" value="transfer" autocomplete="off" onchange="toggleTxFields()">
                             <label class="btn btn-type btn-type-transfer" for="type-transfer">
                                 <i class="ph ph-arrows-left-right fs-5 d-block mb-1"></i>
                                 <span class="small fw-semibold">Transferência</span>
@@ -403,6 +405,7 @@
                     <div id="tx-fields-wrapper" class="hidden">
                         <div id="tx-form-error" class="alert alert-danger py-2 small hidden mb-3" role="alert"></div>
 
+                        <!-- Descrição -->
                         <div class="mb-3">
                             <label for="tx-desc" class="form-label text-muted small fw-semibold text-uppercase">
                                 <i class="ph ph-pencil-simple me-1 opacity-75"></i>Descrição
@@ -410,15 +413,20 @@
                             <input type="text" id="tx-desc" class="form-control" placeholder="Ex: Mercado, Salário, Netflix..." required autocomplete="off">
                         </div>
 
+                        <!-- Categoria + botão gerenciar -->
                         <div class="mb-3 hidden" id="tx-category-group">
-                            <label for="tx-category" class="form-label text-muted small fw-semibold text-uppercase">
-                                <i class="ph ph-tag me-1 opacity-75"></i>Categoria
+                            <label for="tx-category" class="form-label text-muted small fw-semibold text-uppercase d-flex justify-content-between align-items-center">
+                                <span><i class="ph ph-tag me-1 opacity-75"></i>Categoria</span>
+                                <button type="button" class="btn-manage-cats" onclick="openCategoryManager()" title="Gerenciar categorias">
+                                    <i class="ph ph-sliders-horizontal"></i> Gerenciar
+                                </button>
                             </label>
                             <select id="tx-category" class="form-select">
                                 <option value="" disabled selected>Selecione a categoria...</option>
                             </select>
                         </div>
 
+                        <!-- Valor -->
                         <div class="mb-3">
                             <label for="tx-amount" class="form-label text-muted small fw-semibold text-uppercase">
                                 <i class="ph ph-currency-dollar me-1 opacity-75"></i>Valor Total
@@ -429,27 +437,47 @@
                             </div>
                         </div>
 
-                        <div class="mb-3 hidden" id="tx-is-installment-group">
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <div class="form-check form-switch pt-1">
-                                        <input class="form-check-input" type="checkbox" id="tx-is-installment" onchange="toggleInstallmentField()">
-                                        <label class="form-check-label text-muted small fw-semibold text-uppercase" for="tx-is-installment">
-                                            <i class="ph ph-splits me-1 opacity-75"></i>Parcelar?
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="form-check form-switch pt-1">
-                                        <input class="form-check-input" type="checkbox" id="tx-is-recurring">
-                                        <label class="form-check-label text-muted small fw-semibold text-uppercase" for="tx-is-recurring">
-                                            <i class="ph ph-repeat me-1 opacity-75"></i>Recorrente?
-                                        </label>
-                                    </div>
-                                </div>
+                        <!-- Data -->
+                        <div class="mb-3">
+                            <label for="tx-date" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-calendar-blank me-1 opacity-75"></i>Data
+                            </label>
+                            <input type="date" id="tx-date" class="form-control" required onclick="this.showPicker()">
+                        </div>
+
+                        <!-- Conta / Cartão -->
+                        <div class="mb-3" id="tx-account-group">
+                            <label for="tx-account" class="form-label text-muted small fw-semibold text-uppercase" id="tx-account-label">
+                                <i class="ph ph-bank me-1 opacity-75"></i>Conta ou Cartão
+                            </label>
+                            <select id="tx-account" class="form-select" required onchange="toggleTxFields()"></select>
+                        </div>
+
+                        <!-- Conta de Destino (só transferência) -->
+                        <div class="mb-3 hidden" id="tx-destination-group">
+                            <label for="tx-destination" class="form-label text-muted small fw-semibold text-uppercase">
+                                <i class="ph ph-arrow-right me-1 opacity-75"></i>Conta de Destino
+                            </label>
+                            <select id="tx-destination" class="form-select"></select>
+                        </div>
+
+                        <!-- Opções extras: Recorrente + Parcelar (income e expense) -->
+                        <div class="mb-3 hidden" id="tx-options-group">
+                            <div class="tx-options-row">
+                                <!-- Recorrente — disponível para income E expense -->
+                                <label class="tx-option-chip" id="tx-recurring-chip">
+                                    <input type="checkbox" id="tx-is-recurring">
+                                    <span><i class="ph ph-repeat"></i> Recorrente</span>
+                                </label>
+                                <!-- Parcelar — só expense -->
+                                <label class="tx-option-chip hidden" id="tx-installment-chip">
+                                    <input type="checkbox" id="tx-is-installment" onchange="toggleTxFields()">
+                                    <span><i class="ph ph-splits"></i> Parcelar</span>
+                                </label>
                             </div>
                         </div>
 
+                        <!-- Nº de parcelas (só quando parcelar está ativo) -->
                         <div class="mb-3 hidden" id="tx-installments-group">
                             <label for="tx-installments" class="form-label text-muted small fw-semibold text-uppercase">
                                 <i class="ph ph-list-numbers me-1 opacity-75"></i>Número de Parcelas
@@ -458,32 +486,47 @@
                             <div id="tx-installment-helper" class="installment-preview mt-2 hidden"></div>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="tx-date" class="form-label text-muted small fw-semibold text-uppercase">
-                                <i class="ph ph-calendar-blank me-1 opacity-75"></i>Data
-                            </label>
-                            <input type="date" id="tx-date" class="form-control" required onclick="this.showPicker()">
-                        </div>
-
-                        <div class="mb-3" id="tx-account-group">
-                            <label for="tx-account" class="form-label text-muted small fw-semibold text-uppercase" id="tx-account-label">
-                                <i class="ph ph-bank me-1 opacity-75"></i>Conta ou Cartão
-                            </label>
-                            <select id="tx-account" class="form-select" required onchange="toggleInstallmentField()"></select>
-                        </div>
-
-                        <div class="mb-3 hidden" id="tx-destination-group">
-                            <label for="tx-destination" class="form-label text-muted small fw-semibold text-uppercase">
-                                <i class="ph ph-arrow-right me-1 opacity-75"></i>Conta de Destino
-                            </label>
-                            <select id="tx-destination" class="form-select"></select>
-                        </div>
-
                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2 rounded-pill mt-2">
                             <i class="ph ph-check-circle me-2"></i>Salvar Transação
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Manager Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold">Gerenciar Categorias</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <label class="form-label text-muted small fw-semibold text-uppercase">Tipo de Categoria</label>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary rounded-pill px-3 active-cat-tab" id="cat-tab-expense" onclick="switchCatTab('expense')">Gastos</button>
+                        <button class="btn btn-sm btn-outline-primary rounded-pill px-3" id="cat-tab-income" onclick="switchCatTab('income')">Entradas</button>
+                    </div>
+                </div>
+
+                <!-- Add new category -->
+                <div class="mb-3">
+                    <label class="form-label text-muted small fw-semibold text-uppercase">Nova Categoria</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="new-cat-name" class="form-control" placeholder="Nome da categoria...">
+                        <select id="new-cat-group" class="form-select w-auto" style="min-width:130px;"></select>
+                        <button type="button" class="btn btn-primary px-3 rounded-pill" onclick="addCustomCategory()">
+                            <i class="ph ph-plus"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Category list -->
+                <div id="cat-manager-list"></div>
             </div>
         </div>
     </div>
@@ -544,7 +587,6 @@
                         <div class="col-6">
                             <label for="card-closing" class="form-label text-muted small fw-semibold text-uppercase">
                                 Dia de Fechamento
-                                <span class="badge bg-primary ms-1" style="font-size:0.6rem;">NOVO</span>
                             </label>
                             <input type="number" id="card-closing" min="1" max="31" class="form-control" required placeholder="Ex: 25">
                             <div class="tiny text-muted mt-1">Dia que a fatura fecha</div>
