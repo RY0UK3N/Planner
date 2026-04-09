@@ -371,8 +371,6 @@ function setupModalEvents() {
         document.getElementById('tx-modal-title').textContent = 'Nova Transação';
         document.getElementById('tx-fields-wrapper').classList.add('hidden');
         document.getElementById('tx-installment-helper').textContent = '';
-        document.getElementById('tx-options-group').classList.add('hidden');
-        document.getElementById('tx-installments-group').classList.add('hidden');
         clearFormError();
     });
     document.getElementById('accountModal').addEventListener('hidden.bs.modal', () => {
@@ -412,182 +410,70 @@ function _populateAccountDropdowns() {
 }
 
 /* ============================================================
-   CATEGORIAS — Sistema customizável
+   TRANSACTION FORM LOGIC
    ============================================================ */
-const DEFAULT_CATEGS_INCOME = ['Salário', 'Rendimentos / Freelance', 'Saldos Iniciais', 'Outros'];
-const DEFAULT_CATEGS_EXPENSE = {
+const CATEGS_INCOME = ['Salário', 'Rendimentos / Freelance', 'Saldos Iniciais', 'Outros'];
+const CATEGS_EXPENSE_GROUPS = {
     'Contas Fixas': ['Assinaturas', 'Contabilidade', 'Energia / Água', 'Internet / Celular', 'Taxas Bancárias'],
     'Gastos Variáveis': ['Farmácia / Saúde', 'Manutenções', 'Restaurantes / Delivery', 'Supermercado', 'Transporte / Combustível', 'Outros']
 };
-const CAT_STORAGE_KEY = 'planner_categories';
 
-function _loadCategories() {
-    try {
-        const raw = localStorage.getItem(CAT_STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
-    } catch(_) {}
-    return {
-        income: [...DEFAULT_CATEGS_INCOME],
-        expense: structuredClone(DEFAULT_CATEGS_EXPENSE)
-    };
-}
-
-function _saveCategories(cats) {
-    try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(cats)); } catch(_) {}
-}
-
-function getCategoriesForType(type) {
-    const cats = _loadCategories();
-    return type === 'income' ? cats.income : cats.expense;
-}
-
-function _buildCategoryOptions(type, currentVal = '') {
-    const cats = getCategoriesForType(type);
-    let html = '<option value="" disabled selected>Selecione a categoria...</option>';
-    if (type === 'income') {
-        cats.forEach(c => html += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
-    } else {
-        Object.entries(cats).forEach(([g, list]) => {
-            html += `<optgroup label="${g}">`;
-            list.forEach(c => html += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
-            html += '</optgroup>';
-        });
-    }
-    return html;
-}
-
-/* ── Category Manager ── */
-let _catTabActive = 'expense';
-
-function openCategoryManager() {
-    _catTabActive = document.querySelector('input[name="type"]:checked')?.value === 'income' ? 'income' : 'expense';
-    renderCategoryManager();
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('categoryModal')).show();
-}
-
-function switchCatTab(type) {
-    _catTabActive = type;
-    document.getElementById('cat-tab-expense').classList.toggle('btn-primary', type === 'expense');
-    document.getElementById('cat-tab-expense').classList.toggle('btn-outline-primary', type !== 'expense');
-    document.getElementById('cat-tab-income').classList.toggle('btn-primary', type === 'income');
-    document.getElementById('cat-tab-income').classList.toggle('btn-outline-primary', type !== 'income');
-    renderCategoryManager();
-}
-
-function renderCategoryManager() {
-    const cats = _loadCategories();
-    const groupSelect = document.getElementById('new-cat-group');
-    const list = document.getElementById('cat-manager-list');
-
-    if (_catTabActive === 'income') {
-        groupSelect.innerHTML = '<option value="__income__">Entradas</option>';
-        groupSelect.style.display = 'none';
-        list.innerHTML = cats.income.map((c, i) => `
-            <div class="cat-manager-row">
-                <span class="cat-manager-name">${c}</span>
-                <button type="button" class="btn-icon danger" onclick="deleteCategory('income', null, ${i})" title="Remover">
-                    <i class="ph ph-trash"></i>
-                </button>
-            </div>`).join('');
-    } else {
-        const groups = Object.keys(cats.expense);
-        groupSelect.innerHTML = groups.map(g => `<option value="${g}">${g}</option>`).join('');
-        groupSelect.style.display = '';
-        list.innerHTML = groups.map(g => `
-            <div class="cat-group-section">
-                <div class="cat-group-label">${g}</div>
-                ${cats.expense[g].map((c, i) => `
-                    <div class="cat-manager-row">
-                        <span class="cat-manager-name">${c}</span>
-                        <button type="button" class="btn-icon danger" onclick="deleteCategory('expense', '${g}', ${i})" title="Remover">
-                            <i class="ph ph-trash"></i>
-                        </button>
-                    </div>`).join('')}
-            </div>`).join('');
-    }
-}
-
-function addCustomCategory() {
-    const name = document.getElementById('new-cat-name').value.trim();
-    if (!name) { showToast('Informe o nome da categoria.', 'error'); return; }
-    const cats = _loadCategories();
-    if (_catTabActive === 'income') {
-        if (cats.income.includes(name)) { showToast('Categoria já existe.', 'error'); return; }
-        cats.income.push(name);
-    } else {
-        const group = document.getElementById('new-cat-group').value;
-        if (!cats.expense[group]) cats.expense[group] = [];
-        if (cats.expense[group].includes(name)) { showToast('Categoria já existe.', 'error'); return; }
-        cats.expense[group].push(name);
-    }
-    _saveCategories(cats);
-    document.getElementById('new-cat-name').value = '';
-    renderCategoryManager();
-    showToast(`Categoria "${name}" adicionada!`);
-}
-
-function deleteCategory(type, group, idx) {
-    const cats = _loadCategories();
-    if (type === 'income') {
-        cats.income.splice(idx, 1);
-    } else {
-        cats.expense[group].splice(idx, 1);
-    }
-    _saveCategories(cats);
-    renderCategoryManager();
-}
-
-/* ============================================================
-   TRANSACTION FORM LOGIC
-   ============================================================ */
-function toggleTxFields() {
+function toggleInstallmentField() {
     const checked = document.querySelector('input[name="type"]:checked');
     if (!checked) return;
     const type = checked.value;
-    document.getElementById('tx-fields-wrapper').classList.remove('hidden');
+    const wrapper = document.getElementById('tx-fields-wrapper');
+    wrapper.classList.remove('hidden');
 
-    const catGroup     = document.getElementById('tx-category-group');
-    const destGroup    = document.getElementById('tx-destination-group');
-    const accLabel     = document.getElementById('tx-account-label');
-    const catSelect    = document.getElementById('tx-category');
-    const optionsGroup = document.getElementById('tx-options-group');
-    const instChip     = document.getElementById('tx-installment-chip');
-    const instGroup    = document.getElementById('tx-installments-group');
+    const isInstMarkGroup = document.getElementById('tx-is-installment-group');
+    const instGroup = document.getElementById('tx-installments-group');
+    const catGroup = document.getElementById('tx-category-group');
+    const destGroup = document.getElementById('tx-destination-group');
+    const accLabel = document.getElementById('tx-account-label');
+    const catSelect = document.getElementById('tx-category');
+    const accId = document.getElementById('tx-account').value;
+    const isCard = getData().cards.some(c => c.id === accId);
     const isInstChecked = document.getElementById('tx-is-installment')?.checked;
 
+    accLabel.textContent = 'Conta ou Cartão';
+
     if (type === 'transfer') {
+        isInstMarkGroup.classList.add('hidden');
+        instGroup.classList.add('hidden');
         catGroup.classList.add('hidden');
         destGroup.classList.remove('hidden');
-        optionsGroup.classList.add('hidden');
-        instGroup.classList.add('hidden');
-        accLabel.innerHTML = '<i class="ph ph-bank me-1 opacity-75"></i>Conta de Origem';
+        accLabel.textContent = 'Conta de Origem';
         catSelect.removeAttribute('required');
         document.getElementById('tx-destination').setAttribute('required', 'true');
     } else {
         catGroup.classList.remove('hidden');
         destGroup.classList.add('hidden');
-        optionsGroup.classList.remove('hidden');
-        accLabel.innerHTML = '<i class="ph ph-bank me-1 opacity-75"></i>Conta ou Cartão';
         catSelect.setAttribute('required', 'true');
         document.getElementById('tx-destination').removeAttribute('required');
 
-        // Parcelar só aparece para expense
-        instChip.classList.toggle('hidden', type !== 'expense');
-        if (type !== 'expense') {
-            document.getElementById('tx-is-installment').checked = false;
+        if (type === 'income') {
+            isInstMarkGroup.classList.add('hidden');
             instGroup.classList.add('hidden');
         } else {
+            isInstMarkGroup.classList.remove('hidden');
             isInstChecked ? instGroup.classList.remove('hidden') : instGroup.classList.add('hidden');
         }
 
-        // Rebuild category list
-        catSelect.innerHTML = _buildCategoryOptions(type, catSelect.value);
+        // Rebuild categories
+        const currentVal = catSelect.value;
+        catSelect.innerHTML = '<option value="" disabled selected>Selecione a categoria...</option>';
+        if (type === 'income') {
+            CATEGS_INCOME.forEach(c => catSelect.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
+        } else {
+            Object.entries(CATEGS_EXPENSE_GROUPS).forEach(([g, cats]) => {
+                catSelect.innerHTML += `<optgroup label="${g}">`;
+                cats.forEach(c => catSelect.innerHTML += `<option value="${c}" ${c === currentVal ? 'selected' : ''}>${c}</option>`);
+                catSelect.innerHTML += '</optgroup>';
+            });
+        }
     }
     updateInstallmentHelper();
 }
-
-// Alias mantido para compatibilidade com eventos inline antigos
-function toggleInstallmentField() { toggleTxFields(); }
 
 function updateInstallmentHelper() {
     const amount = getCurrencyValue('tx-amount');
@@ -767,12 +653,13 @@ function edTx(id) {
 
     _populateAccountDropdowns();
     document.getElementById('tx-fields-wrapper').classList.remove('hidden');
-    toggleTxFields();
+    toggleInstallmentField();
 
     document.getElementById('tx-account').value = tx.accountId;
     if (tx.type === 'transfer' && tx.destinationId) document.getElementById('tx-destination').value = tx.destinationId;
     if (tx.category && tx.category !== 'Transferência') document.getElementById('tx-category').value = tx.category;
 
+    // Restaura o estado de recorrente
     const recurCheck = document.getElementById('tx-is-recurring');
     if (recurCheck) recurCheck.checked = !!tx.recurring;
 
@@ -795,6 +682,7 @@ function renderAll() {
     renderCards(data);
     renderMovimentacao(data);
     renderProjection(data);
+    _populateMovFilters(data);
 
     // Refresh detail modal if open
     if (window._detailContext?.id) {
@@ -808,6 +696,214 @@ function renderAll() {
             }
         }
     }
+}
+
+/* ============================================================
+   ORÇAMENTO POR CATEGORIA
+   ============================================================ */
+const BUDGET_KEY = 'planner_budgets';
+
+function _loadBudgets() {
+    try { const r = localStorage.getItem(BUDGET_KEY); return r ? JSON.parse(r) : {}; } catch(_) { return {}; }
+}
+function _saveBudgets(b) {
+    try { localStorage.setItem(BUDGET_KEY, JSON.stringify(b)); } catch(_) {}
+}
+
+function openBudgetManager() {
+    renderBudgetManager();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('budgetModal')).show();
+}
+
+function renderBudgetManager() {
+    const budgets  = _loadBudgets();
+    const cats     = _loadCategories();
+    const allCats  = Object.values(cats.expense).flat();
+    const el       = document.getElementById('budget-manager-list');
+
+    el.innerHTML = allCats.map(cat => {
+        const val = budgets[cat] || '';
+        return `
+        <div class="budget-manager-row">
+            <span class="budget-cat-name"><span class="tag" data-cat="${cat}">${cat}</span></span>
+            <div class="input-group input-group-sm budget-input-group">
+                <span class="input-group-text currency-prefix" style="font-size:0.75rem;">R$</span>
+                <input type="text" inputmode="numeric" class="form-control budget-input"
+                    placeholder="Sem limite" value="${val ? val.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : ''}"
+                    data-cat="${cat}" onchange="saveBudgetEntry('${cat}', this.value)">
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function saveBudgetEntry(cat, rawVal) {
+    const budgets = _loadBudgets();
+    const digits  = rawVal.replace(/\D/g, '');
+    if (!digits) { delete budgets[cat]; }
+    else { budgets[cat] = parseInt(digits, 10) / 100; }
+    _saveBudgets(budgets);
+    renderDashboard(getData());
+}
+
+function renderBudgets(data) {
+    const el = document.getElementById('budget-list');
+    if (!el) return;
+    const budgets = _loadBudgets();
+    if (!Object.keys(budgets).length) {
+        el.innerHTML = '<p class="text-muted small mb-0">Nenhum orçamento definido. Clique em Gerenciar para configurar.</p>';
+        return;
+    }
+    const month = new Date().toISOString().slice(0, 7);
+    const spent = {};
+    data.transactions.filter(t => t.type === 'expense' && t.date.startsWith(month))
+        .forEach(t => { spent[t.category] = (spent[t.category] || 0) + t.amount; });
+
+    el.innerHTML = Object.entries(budgets).map(([cat, limit]) => {
+        const used   = spent[cat] || 0;
+        const pct    = Math.min((used / limit) * 100, 100);
+        const over   = used > limit;
+        const warn   = pct >= 80 && !over;
+        const color  = over ? 'var(--color-expense)' : warn ? '#f59e0b' : 'var(--color-primary)';
+        const barBg  = over ? 'rgba(255,77,109,0.15)' : warn ? 'rgba(245,158,11,0.15)' : 'rgba(0,200,150,0.1)';
+        const icon   = over ? 'ph-warning-circle' : warn ? 'ph-warning' : 'ph-check-circle';
+        return `
+        <div class="budget-item">
+            <div class="budget-item-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="ph ${icon}" style="color:${color};font-size:1rem;flex-shrink:0;"></i>
+                    <span class="small fw-semibold">${cat}</span>
+                    ${over ? `<span class="badge-budget-alert">Excedido</span>` : warn ? `<span class="badge-budget-warn">Atenção</span>` : ''}
+                </div>
+                <span class="small fw-bold" style="color:${color};">${formatCurrency(used)} <span class="text-muted fw-normal">/ ${formatCurrency(limit)}</span></span>
+            </div>
+            <div class="budget-bar-bg" style="background:${barBg};">
+                <div class="budget-bar-fill" style="width:${pct}%;background:${color};"></div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ============================================================
+   COMPARATIVO MENSAL — últimos 6 meses
+   ============================================================ */
+let _comparisonChart = null;
+
+function renderComparisonChart(data) {
+    const canvas = document.getElementById('monthlyComparisonChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+
+    const today = new Date();
+    const labels = [], incomes = [], expenses = [];
+
+    for (let i = 5; i >= 0; i--) {
+        const d  = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const ms = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        const ML = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        labels.push(`${ML[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`);
+        let inc = 0, exp = 0;
+        data.transactions.filter(t => t.date.startsWith(ms)).forEach(t => {
+            if (t.type === 'income')  inc += t.amount;
+            if (t.type === 'expense') exp += t.amount;
+        });
+        incomes.push(parseFloat(inc.toFixed(2)));
+        expenses.push(parseFloat(exp.toFixed(2)));
+    }
+
+    if (_comparisonChart) _comparisonChart.destroy();
+
+    _comparisonChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Receitas',
+                    data: incomes,
+                    backgroundColor: 'rgba(0,200,150,0.75)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                },
+                {
+                    label: 'Despesas',
+                    data: expenses,
+                    backgroundColor: 'rgba(255,77,109,0.75)',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', font: { size: 11 }, padding: 16 } },
+                tooltip: {
+                    backgroundColor: '#1e1e2a',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    borderWidth: 1,
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#94a3b8',
+                    padding: 10,
+                    cornerRadius: 10,
+                    callbacks: {
+                        label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.raw)}`,
+                        afterBody: items => {
+                            const inc = items.find(i => i.dataset.label === 'Receitas')?.raw || 0;
+                            const exp = items.find(i => i.dataset.label === 'Despesas')?.raw || 0;
+                            const bal = inc - exp;
+                            return [`Saldo: ${bal >= 0 ? '+' : ''}${formatCurrency(bal)}`];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 11 } } },
+                y: {
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: {
+                        color: '#64748b', font: { size: 10 },
+                        callback: v => Math.abs(v) >= 1000 ? `R$${(v/1000).toFixed(0)}k` : `R$${v.toFixed(0)}`
+                    }
+                }
+            }
+        }
+    });
+}
+
+/* ============================================================
+   FILTROS DA MOVIMENTAÇÃO — categoria + conta
+   ============================================================ */
+function _populateMovFilters(data) {
+    const catSel = document.getElementById('tx-filter-category');
+    const accSel = document.getElementById('tx-filter-account');
+    if (!catSel || !accSel) return;
+
+    // Preserva seleção atual
+    const prevCat = catSel.value;
+    const prevAcc = accSel.value;
+
+    // Categorias únicas das transações do mês atual
+    const cats = [...new Set(
+        data.transactions
+            .filter(t => t.category && t.type !== 'transfer')
+            .map(t => t.category)
+    )].sort();
+
+    catSel.innerHTML = '<option value="all">Todas as categorias</option>' +
+        cats.map(c => `<option value="${c}" ${c === prevCat ? 'selected' : ''}>${c}</option>`).join('');
+
+    // Contas + cartões
+    const allAccounts = [
+        ...data.accounts.map(a => ({ id: a.id, name: a.name })),
+        ...data.cards.map(c => ({ id: c.id, name: c.name }))
+    ];
+    accSel.innerHTML = '<option value="all">Todas as contas</option>' +
+        allAccounts.map(a => `<option value="${a.id}" ${a.id === prevAcc ? 'selected' : ''}>${a.name}</option>`).join('');
+
+    // Restaura seleção
+    if (prevCat && cats.includes(prevCat)) catSel.value = prevCat;
+    if (prevAcc) accSel.value = prevAcc;
 }
 
 /* ============================================================
@@ -834,31 +930,27 @@ function renderProjection(data) {
     }
 
     // ── 3. Transações RECORRENTES marcadas explicitamente ──
-    // Soma apenas a parcela mensal de cada recorrente (uma ocorrência = um mês)
-    // Deduplica por groupId para não contar cada parcela como recorrente separada
-    const recurIncomeMap  = {};
-    const recurExpenseMap = {};
+    // Agrupa por tipo → soma do valor mensal recorrente
+    let recurIncome  = 0;
+    let recurExpense = 0;
     data.transactions
-        .filter(t => t.recurring && !t.groupId)
+        .filter(t => t.recurring && t.date <= todayStr)
         .forEach(t => {
-            if (t.type === 'income')  recurIncomeMap[t.id]  = t.amount;
-            if (t.type === 'expense') recurExpenseMap[t.id] = t.amount;
+            if (t.type === 'income')  recurIncome  += t.amount;
+            if (t.type === 'expense') recurExpense += t.amount;
         });
 
-    const recurIncome  = Object.values(recurIncomeMap).reduce((s, v) => s + v, 0);
-    const recurExpense = Object.values(recurExpenseMap).reduce((s, v) => s + v, 0);
-
-    // ── 4. Transações futuras/parceladas já registradas (não recorrentes) ──
-    // Parcelas: cada installment já é uma transação individual com data futura
-    // Recorrentes: já tratados acima como base mensal fixa — não entram aqui
+    // ── 4. Transações futuras/parceladas já registradas ──
     const futureMonthMap = {};
     months.forEach(m => { futureMonthMap[m] = { income: 0, expense: 0 }; });
 
     data.transactions
-        .filter(t => t.type !== 'transfer' && !t.recurring && t.date > todayStr)
+        .filter(t => t.type !== 'transfer' && !t.recurring)
         .forEach(tx => {
             const txMonth = tx.date.slice(0, 7);
             if (!futureMonthMap[txMonth]) return;
+            const isCurrentMonth = txMonth === months[0];
+            if (isCurrentMonth && tx.date <= todayStr) return; // já aconteceu
             if (tx.type === 'income')  futureMonthMap[txMonth].income  += tx.amount;
             if (tx.type === 'expense') futureMonthMap[txMonth].expense += tx.amount;
         });
@@ -1148,6 +1240,8 @@ function renderDashboard(data) {
     }
 
     renderChart(data);
+    renderComparisonChart(data);
+    renderBudgets(data);
 
     // Recent transactions
     const today = new Date().toISOString().split('T')[0];
@@ -1236,14 +1330,21 @@ function renderTransactions(data) {
     tbody.innerHTML = '';
     mobileList.innerHTML = '';
 
-    const filter = document.getElementById('tx-filter').value;
+    const filter        = document.getElementById('tx-filter').value;
+    const filterCat     = document.getElementById('tx-filter-category')?.value || 'all';
+    const filterAcc     = document.getElementById('tx-filter-account')?.value   || 'all';
+
     let filtered = data.transactions;
-    if (filter !== 'all') filtered = filtered.filter(t => t.type === filter);
-    if (_currentMonth) filtered = filtered.filter(t => t.date.startsWith(_currentMonth));
+    if (filter !== 'all')    filtered = filtered.filter(t => t.type === filter);
+    if (filterCat !== 'all') filtered = filtered.filter(t => t.category === filterCat);
+    if (filterAcc !== 'all') filtered = filtered.filter(t => t.accountId === filterAcc || t.destinationId === filterAcc);
+    if (_currentMonth)       filtered = filtered.filter(t => t.date.startsWith(_currentMonth));
 
     const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    const EMPTY_MSG = 'Nenhuma transação encontrada.';
+    const EMPTY_MSG = filterCat !== 'all' || filterAcc !== 'all'
+        ? 'Nenhuma transação com os filtros aplicados.'
+        : 'Nenhuma transação encontrada.';
 
     if (!sorted.length) {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4 small">${EMPTY_MSG}</td></tr>`;
