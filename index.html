@@ -22,13 +22,23 @@
                 <div class="logo-sub">Financeiro Pessoal</div>
             </div>
         </div>
-        <ul class="nav planner-pill-nav">
-            <li class="nav-item"><a href="#" class="nav-link active" data-target="dashboard">Dashboard</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" data-target="movimentacao">Movimentação</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" data-target="projecao">Projeção</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" data-target="accounts">Contas/Cartões</a></li>
-            <li class="nav-item"><a href="#" class="nav-link" data-target="backup">Backup</a></li>
-        </ul>
+        <div class="d-flex align-items-center gap-2">
+            <ul class="nav planner-pill-nav">
+                <li class="nav-item"><a href="#" class="nav-link active" data-target="dashboard">Dashboard</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-target="movimentacao">Movimentação</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-target="projecao">Projeção</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-target="accounts">Contas/Cartões</a></li>
+                <li class="nav-item"><a href="#" class="nav-link" data-target="backup">Backup</a></li>
+            </ul>
+            <!-- Desktop settings button -->
+            <button class="btn-settings-desktop" onclick="openSettingsPanel()" title="Configurações" aria-label="Configurações">
+                <i class="ph ph-gear"></i>
+            </button>
+        </div>
+        <!-- Mobile hamburger -->
+        <button class="btn-hamburger d-md-none" onclick="openSettingsPanel()" aria-label="Configurações">
+            <i class="ph ph-list"></i>
+        </button>
     </div>
 </nav>
 
@@ -459,8 +469,11 @@
                         </div>
 
                         <div class="mb-3 hidden" id="tx-category-group">
-                            <label for="tx-category" class="form-label text-muted small fw-semibold text-uppercase">
-                                <i class="ph ph-tag me-1 opacity-75"></i>Categoria
+                            <label for="tx-category" class="form-label text-muted small fw-semibold text-uppercase d-flex justify-content-between align-items-center">
+                                <span><i class="ph ph-tag me-1 opacity-75"></i>Categoria</span>
+                                <button type="button" class="btn-manage-cats" onclick="openCategoryManager()" title="Gerenciar categorias">
+                                    <i class="ph ph-sliders-horizontal"></i> Gerenciar
+                                </button>
                             </label>
                             <select id="tx-category" class="form-select">
                                 <option value="" disabled selected>Selecione a categoria...</option>
@@ -665,6 +678,49 @@
     </div>
 </div>
 
+<!-- Color Picker Modal -->
+<div class="modal fade" id="colorPickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-bottom py-2 px-3">
+                <span class="small fw-bold">Cor de <span id="color-picker-cat-name"></span></span>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="hidden" id="color-picker-cat-target">
+                <div id="color-picker-modal-content" class="color-palette-grid"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Manager Modal (opened from transaction form) -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold">Gerenciar Categorias</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">Para editar cores e orçamentos, acesse <strong>Configurações</strong>.</p>
+                <div class="d-flex gap-2 mb-3">
+                    <button class="btn btn-sm btn-primary rounded-pill px-3" id="cat-modal-tab-expense" onclick="switchCatTabModal('expense')">Gastos</button>
+                    <button class="btn btn-sm btn-outline-primary rounded-pill px-3" id="cat-modal-tab-income" onclick="switchCatTabModal('income')">Entradas</button>
+                </div>
+                <div class="d-flex gap-2 mb-3">
+                    <input type="text" id="new-cat-name-modal" class="form-control form-control-sm" placeholder="Nome da nova categoria...">
+                    <select id="new-cat-group-modal" class="form-select form-select-sm" style="min-width:130px;"></select>
+                    <button type="button" class="btn btn-primary btn-sm px-3 rounded-pill" onclick="addCustomCategoryModal()">
+                        <i class="ph ph-plus"></i>
+                    </button>
+                </div>
+                <div id="cat-manager-list-modal"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Budget Manager Modal -->
 <div class="modal fade" id="budgetModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -674,7 +730,96 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small mb-4">Defina um limite mensal por categoria de gasto. Você será avisado quando se aproximar do limite.</p>
+                <p class="text-muted small mb-4">Defina um limite mensal por categoria de gasto.</p>
+                <div id="budget-manager-list"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SETTINGS OFFCANVAS ===== -->
+<div class="offcanvas offcanvas-end settings-offcanvas" tabindex="-1" id="settingsOffcanvas" aria-labelledby="settingsOffcanvasLabel">
+    <div class="offcanvas-header border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <i class="ph ph-gear text-primary fs-5"></i>
+            <h5 class="offcanvas-title fw-bold mb-0" id="settingsOffcanvasLabel">Configurações</h5>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+
+        <!-- Tema -->
+        <div class="settings-section-header mt-0">
+            <i class="ph ph-paint-brush"></i><span>Aparência</span>
+        </div>
+        <div class="settings-panel-card mb-4">
+            <div class="settings-row">
+                <div>
+                    <div class="settings-row-label">Tema</div>
+                    <div class="settings-row-desc">Modo escuro ou claro</div>
+                </div>
+                <div class="settings-theme-switch">
+                    <i class="ph ph-moon" style="color:#94a3b8;font-size:1rem;"></i>
+                    <div class="form-check form-switch mb-0 mx-1">
+                        <input class="form-check-input" type="checkbox" id="settings-theme-toggle" onchange="toggleTheme()">
+                    </div>
+                    <i class="ph ph-sun" style="color:#f59e0b;font-size:1rem;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categorias -->
+        <div class="settings-section-header">
+            <i class="ph ph-tag"></i><span>Categorias</span>
+        </div>
+        <div class="settings-panel-card mb-4">
+            <p class="text-muted small mb-3">Personalize categorias e cores. Clique no swatch colorido para alterar a cor.</p>
+            <div class="d-flex gap-2 mb-3">
+                <button class="btn btn-sm btn-primary rounded-pill px-3" id="cat-tab-expense" onclick="switchCatTab('expense')">Gastos</button>
+                <button class="btn btn-sm btn-outline-primary rounded-pill px-3" id="cat-tab-income" onclick="switchCatTab('income')">Entradas</button>
+            </div>
+            <div class="d-flex gap-2 mb-3">
+                <input type="text" id="new-cat-name" class="form-control form-control-sm" placeholder="Nova categoria...">
+                <select id="new-cat-group" class="form-select form-select-sm" style="min-width:110px;"></select>
+                <button type="button" class="btn btn-primary btn-sm px-3 rounded-pill" onclick="addCustomCategory()">
+                    <i class="ph ph-plus"></i>
+                </button>
+            </div>
+            <div id="cat-manager-list"></div>
+        </div>
+
+        <!-- Limpar dados -->
+        <div class="settings-section-header">
+            <i class="ph ph-trash"></i><span>Dados</span>
+        </div>
+        <div class="settings-panel-card">
+            <div class="settings-row">
+                <div>
+                    <div class="settings-row-label">Limpar dados do navegador</div>
+                    <div class="settings-row-desc">Remove sessionStorage e localStorage desta sessão</div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="confirmClearData()">
+                    <i class="ph ph-trash me-1"></i>Limpar
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Budget Manager Modal (from dashboard) -->
+<div class="modal fade" id="budgetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="ph ph-target text-primary"></i>
+                    <h5 class="modal-title fw-bold mb-0">Orçamento do Mês</h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-4">Defina um limite mensal por categoria. Você será avisado quando se aproximar do limite.</p>
                 <div id="budget-manager-list"></div>
             </div>
         </div>
