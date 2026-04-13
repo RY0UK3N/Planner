@@ -721,23 +721,24 @@
     </div>
 </div>
 
-<!-- Budget Manager Modal -->
+<!-- Budget Manager Modal (from dashboard) -->
 <div class="modal fade" id="budgetModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header border-bottom">
-                <h5 class="modal-title fw-bold">Orçamento por Categoria</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="ph ph-target text-primary"></i>
+                    <h5 class="modal-title fw-bold mb-0">Orçamento do Mês</h5>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted small mb-4">Defina um limite mensal por categoria de gasto.</p>
+                <p class="text-muted small mb-4">Defina um limite mensal por categoria. Você será avisado quando se aproximar do limite.</p>
                 <div id="budget-manager-list"></div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- ===== SETTINGS OFFCANVAS ===== -->
 <div class="offcanvas offcanvas-end settings-offcanvas" tabindex="-1" id="settingsOffcanvas" aria-labelledby="settingsOffcanvasLabel">
     <div class="offcanvas-header border-bottom">
         <div class="d-flex align-items-center gap-2">
@@ -796,7 +797,7 @@
             <div class="settings-row">
                 <div>
                     <div class="settings-row-label">Limpar dados do navegador</div>
-                    <div class="settings-row-desc">Remove sessionStorage e localStorage desta sessão</div>
+                    <div class="settings-row-desc">Remove os dados desta sessão</div>
                 </div>
                 <button class="btn btn-sm btn-outline-danger rounded-pill px-3" onclick="confirmClearData()">
                     <i class="ph ph-trash me-1"></i>Limpar
@@ -804,25 +805,6 @@
             </div>
         </div>
 
-    </div>
-</div>
-
-<!-- Budget Manager Modal (from dashboard) -->
-<div class="modal fade" id="budgetModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header border-bottom">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="ph ph-target text-primary"></i>
-                    <h5 class="modal-title fw-bold mb-0">Orçamento do Mês</h5>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-4">Defina um limite mensal por categoria. Você será avisado quando se aproximar do limite.</p>
-                <div id="budget-manager-list"></div>
-            </div>
-        </div>
     </div>
 </div>
 

@@ -16,7 +16,13 @@ const defaultData = {
     accounts: [],
     cards: [],
     transactions: [],
-    cardBillings: []   // histórico de faturas fechadas por cartão
+    cardBillings: [],
+    settings: {
+        theme: 'dark',
+        categories: null,
+        budgets: {},
+        categoryColors: {}
+    }
 };
 
 /* ---------- Core ---------- */
@@ -27,6 +33,19 @@ function getData() {
 
 function saveData(data) {
     sessionStorage.setItem(DB_KEY, JSON.stringify(data));
+}
+
+/* Garante que settings sempre existe com valores padrão */
+function getSettings() {
+    const data = getData();
+    if (!data.settings) data.settings = structuredClone(defaultData.settings);
+    return data.settings;
+}
+
+function saveSettings(settings) {
+    const data = getData();
+    data.settings = settings;
+    saveData(data);
 }
 
 function generateId() {
