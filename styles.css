@@ -317,6 +317,11 @@ body {
     margin: 0 auto 2.5rem auto !important;
     display: flex !important;
 }
+/* Dark — default background for the toggle pill container */
+.mov-view-toggle {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1) !important;
+}
 .btn-group.rounded-pill .btn {
     border: none !important;
     padding: 0.45rem 2rem !important;
@@ -335,10 +340,36 @@ body {
 }
 .btn-group.rounded-pill .btn:not(.active) {
     color: #94a3b8 !important;
+    background: transparent !important;
 }
 .btn-group.rounded-pill .btn:not(.active):hover {
     color: #f1f5f9 !important;
     background: rgba(255,255,255,0.05) !important;
+}
+/* Light theme overrides for view toggle */
+[data-bs-theme="light"] .mov-view-toggle {
+    background: rgba(0,0,0,0.07) !important;
+    border-color: rgba(0,0,0,0.12) !important;
+}
+[data-bs-theme="light"] .btn-group.rounded-pill .btn.active {
+    background: var(--color-primary) !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(5,150,105,0.3);
+}
+[data-bs-theme="light"] .btn-group.rounded-pill .btn:not(.active) {
+    color: #64748b !important;
+    background: transparent !important;
+}
+[data-bs-theme="light"] .btn-group.rounded-pill .btn:not(.active):hover {
+    color: #0f172a !important;
+    background: rgba(0,0,0,0.06) !important;
+}
+
+/* Donut chart wrapper — padding prevents clip at edges */
+.chart-donut-wrap {
+    position: relative;
+    height: 220px;
+    padding: 6px 4px;
 }
 .table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
 
@@ -438,6 +469,125 @@ input[type="date"] { position: relative; cursor: pointer; }
     box-shadow: 0 0 0 3px rgba(0, 200, 150, 0.12) !important;
     background-color: rgba(0, 200, 150, 0.05) !important;
 }
+
+/* ===== Transaction Search & Filters ===== */
+.mov-filter-select {
+    width: auto !important;
+    min-width: 0 !important;
+    flex-shrink: 0;
+    font-size: 0.8rem !important;
+    padding: 0.3rem 1.8rem 0.3rem 0.65rem !important;
+    border-radius: 2rem !important;
+    cursor: pointer;
+}
+
+.mov-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+.mov-search-icon {
+    position: absolute;
+    left: 0.75rem;
+    color: #64748b;
+    font-size: 0.9rem;
+    pointer-events: none;
+    z-index: 1;
+}
+.mov-search-input {
+    width: 100%;
+    padding-left: 2.1rem !important;
+    padding-right: 2rem !important;
+    border-radius: 0.75rem !important;
+    font-size: 0.875rem !important;
+}
+.mov-search-clear {
+    position: absolute;
+    right: 0.6rem;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 3px 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
+}
+.mov-search-clear:hover { color: var(--color-expense); }
+
+.tx-result-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    border-radius: 2rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(0,200,150,0.1);
+    color: var(--color-primary);
+    border: 1px solid rgba(0,200,150,0.2);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+@media (max-width: 576px) {
+    .mov-filter-select { font-size: 0.75rem !important; }
+}
+
+/* ===== Delete Confirm Modal ===== */
+.delete-confirm-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255,77,109,0.12);
+    color: var(--color-expense);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin: 0 auto 1rem;
+}
+
+/* ===== Keyboard Shortcuts ===== */
+.shortcuts-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.shortcut-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.shortcut-row:last-child { border-bottom: none; }
+.shortcut-row span { font-size: 0.875rem; color: var(--bs-body-color); }
+kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: 0.2rem 0.5rem;
+    font-size: 0.75rem;
+    font-family: monospace;
+    font-weight: 700;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 2px solid rgba(255,255,255,0.2);
+    border-radius: 5px;
+    color: #f1f5f9;
+    flex-shrink: 0;
+}
+[data-bs-theme="light"] kbd {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.15);
+    border-bottom-color: rgba(0,0,0,0.25);
+    color: #1e293b;
+}
+[data-bs-theme="light"] .shortcut-row { border-bottom-color: rgba(0,0,0,0.06); }
 
 /* ===== Mobile Transaction Cards ===== */
 .tx-mobile-card {

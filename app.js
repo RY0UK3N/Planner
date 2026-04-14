@@ -14,15 +14,86 @@ function initApp() {
     setupNavigation();
     setupModalEvents();
     setupForms();
-    setupQuickAdd();
     setupCurrencyInput();
     loadFromLocalStorage();
     checkImportPrompt();
     setupBeforeUnload();
-    // Aplica tema salvo antes de renderizar
+    setupKeyboardShortcuts();
     applyTheme(getSettings().theme || 'dark');
     renderAll();
     _navigateTo('dashboard');
+}
+
+/* ============================================================
+   BUSCA DE TRANSAÇÕES
+   ============================================================ */
+function clearTxSearch() {
+    const input = document.getElementById('tx-search');
+    if (input) { input.value = ''; input.focus(); }
+    const clearBtn = document.getElementById('tx-search-clear');
+    if (clearBtn) clearBtn.classList.add('hidden');
+    renderMovimentacao(getData());
+}
+
+/* ============================================================
+   ATALHOS DE TECLADO
+   ============================================================ */
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', e => {
+        // Ignora quando está em campos de input
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        // Ignora quando modal/offcanvas está aberto (exceto Esc)
+        const modalOpen = document.querySelector('.modal.show');
+        const offcanvasOpen = document.querySelector('.offcanvas.show');
+
+        switch (e.key) {
+            case 'Escape':
+                // Fecha modal ou offcanvas mais recente
+                if (modalOpen) bootstrap.Modal.getInstance(modalOpen)?.hide();
+                else if (offcanvasOpen) bootstrap.Offcanvas.getInstance(offcanvasOpen)?.hide();
+                break;
+            case '?':
+                if (!modalOpen && !offcanvasOpen)
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('shortcutsModal')).show();
+                break;
+        }
+
+        // Os atalhos abaixo requerem que nenhum modal/offcanvas esteja aberto
+        if (modalOpen || offcanvasOpen) return;
+
+        switch (e.key) {
+            case 'n': case 'N':
+                e.preventDefault();
+                openTxModal(null);
+                break;
+            case 'd': case 'D':
+                e.preventDefault();
+                _navigateTo('dashboard');
+                break;
+            case 'l': case 'L':
+                e.preventDefault();
+                _navigateTo('movimentacao');
+                break;
+            case 'c': case 'C':
+                e.preventDefault();
+                _navigateTo('accounts');
+                break;
+            case 'b': case 'B':
+                e.preventDefault();
+                _navigateTo('backup');
+                break;
+            case ',':
+                e.preventDefault();
+                openSettingsPanel();
+                break;
+            case '/':
+                e.preventDefault();
+                _navigateTo('movimentacao');
+                setTimeout(() => document.getElementById('tx-search')?.focus(), 150);
+                break;
+        }
+    });
 }
 
 /* ============================================================
@@ -889,9 +960,6 @@ function edAcc(id) {
     document.getElementById('acc-modal-title').textContent = 'Editar Conta';
     bootstrap.Modal.getOrCreateInstance(document.getElementById('accountModal')).show();
 }
-function delAcc(id) {
-    if (confirm('Apagar esta conta?')) { deleteAccount(id); renderAll(); showToast('Conta removida', 'error'); }
-}
 
 function edCard(id) {
     const c = getData().cards.find(c => c.id === id);
@@ -904,8 +972,44 @@ function edCard(id) {
     document.getElementById('card-modal-title').textContent = 'Editar Cartão';
     bootstrap.Modal.getOrCreateInstance(document.getElementById('cardModal')).show();
 }
-function delCard(id) {
-    if (confirm('Apagar este cartão?')) { deleteCard(id); renderAll(); showToast('Cartão removido', 'error'); }
+
+/* ── Duplicate transaction ── */
+function dupTx(id) {
+    const tx = getData().transactions.find(t => t.id === id);
+    if (!tx) return;
+    // Pre-fill form with today's date, clear ID so it creates new
+    document.getElementById('tx-id').value = '';
+    document.getElementById('tx-desc').value = tx.description;
+    setCurrencyValue('tx-amount', tx.amount);
+    document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+    document.querySelector(`input[name="type"][value="${tx.type}"]`).checked = true;
+    _populateAccountDropdowns();
+    document.getElementById('tx-fields-wrapper').classList.remove('hidden');
+    toggleInstallmentField();
+    document.getElementById('tx-account').value = tx.accountId;
+    if (tx.type === 'transfer' && tx.destinationId) document.getElementById('tx-destination').value = tx.destinationId;
+    if (tx.category && tx.category !== 'Transferência') document.getElementById('tx-category').value = tx.category;
+    const recurCheck = document.getElementById('tx-is-recurring');
+    if (recurCheck) recurCheck.checked = !!tx.recurring;
+    document.getElementById('tx-modal-title').textContent = 'Duplicar Transação';
+    document.getElementById('tx-installments-group').classList.add('hidden');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('transactionModal')).show();
+}
+
+/* ── Rich delete confirmation ── */
+function _showDeleteConfirm(title, desc, value, onConfirm) {
+    document.getElementById('delete-confirm-title').textContent = title;
+    document.getElementById('delete-confirm-desc').textContent = desc;
+    document.getElementById('delete-confirm-value').textContent = value || '';
+    const btn = document.getElementById('delete-confirm-btn');
+    // Clone to remove old listeners
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => {
+        bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'))?.hide();
+        onConfirm();
+    });
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('deleteConfirmModal')).show();
 }
 
 function edTx(id) {
@@ -925,7 +1029,6 @@ function edTx(id) {
     if (tx.type === 'transfer' && tx.destinationId) document.getElementById('tx-destination').value = tx.destinationId;
     if (tx.category && tx.category !== 'Transferência') document.getElementById('tx-category').value = tx.category;
 
-    // Restaura o estado de recorrente
     const recurCheck = document.getElementById('tx-is-recurring');
     if (recurCheck) recurCheck.checked = !!tx.recurring;
 
@@ -933,8 +1036,39 @@ function edTx(id) {
     document.getElementById('tx-installments-group').classList.add('hidden');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('transactionModal')).show();
 }
+
 function delTx(id) {
-    if (confirm('Excluir esta transação?')) { deleteTransaction(id); renderAll(); showToast('Transação excluída', 'error'); }
+    const tx = getData().transactions.find(t => t.id === id);
+    if (!tx) return;
+    const typeLabel = tx.type === 'income' ? 'entrada' : tx.type === 'expense' ? 'gasto' : 'transferência';
+    _showDeleteConfirm(
+        'Excluir transação?',
+        `${tx.description} · ${typeLabel} de ${formatDate(tx.date)}`,
+        formatCurrency(tx.amount),
+        () => { deleteTransaction(id); renderAll(); showToast('Transação excluída', 'error'); }
+    );
+}
+
+function delAcc(id) {
+    const acc = getData().accounts.find(a => a.id === id);
+    if (!acc) return;
+    _showDeleteConfirm(
+        'Apagar conta?',
+        acc.name,
+        `Saldo: ${formatCurrency(acc.balance)}`,
+        () => { deleteAccount(id); renderAll(); showToast('Conta removida', 'error'); }
+    );
+}
+
+function delCard(id) {
+    const card = getData().cards.find(c => c.id === id);
+    if (!card) return;
+    _showDeleteConfirm(
+        'Apagar cartão?',
+        card.name,
+        `Limite: ${formatCurrency(card.limit)}`,
+        () => { deleteCard(id); renderAll(); showToast('Cartão removido', 'error'); }
+    );
 }
 
 /* ============================================================
@@ -1221,16 +1355,26 @@ function _populateMovFilters(data) {
             .map(t => t.category)
     )].sort();
 
-    catSel.innerHTML = '<option value="all">Todas as categorias</option>' +
+    catSel.innerHTML = '<option value="all">Categoria</option>' +
         cats.map(c => `<option value="${c}" ${c === prevCat ? 'selected' : ''}>${c}</option>`).join('');
 
-    // Contas + cartões
-    const allAccounts = [
-        ...data.accounts.map(a => ({ id: a.id, name: a.name })),
-        ...data.cards.map(c => ({ id: c.id, name: c.name }))
-    ];
-    accSel.innerHTML = '<option value="all">Todas as contas</option>' +
-        allAccounts.map(a => `<option value="${a.id}" ${a.id === prevAcc ? 'selected' : ''}>${a.name}</option>`).join('');
+    // Contas + cartões com separadores visuais
+    let accHtml = '<option value="all">Conta</option>';
+    if (data.accounts.length) {
+        accHtml += '<optgroup label="─── Contas Bancárias">';
+        data.accounts.forEach(a => {
+            accHtml += `<option value="${a.id}" ${a.id === prevAcc ? 'selected' : ''}>🏦 ${a.name}</option>`;
+        });
+        accHtml += '</optgroup>';
+    }
+    if (data.cards.length) {
+        accHtml += '<optgroup label="─── Cartões de Crédito">';
+        data.cards.forEach(c => {
+            accHtml += `<option value="${c.id}" ${c.id === prevAcc ? 'selected' : ''}>💳 ${c.name}</option>`;
+        });
+        accHtml += '</optgroup>';
+    }
+    accSel.innerHTML = accHtml;
 
     // Restaura seleção
     if (prevCat && cats.includes(prevCat)) catSel.value = prevCat;
@@ -1642,6 +1786,7 @@ function _renderTxItem(container, tx, data, compact) {
         <div class="d-flex align-items-center gap-2">
             <span class="fw-semibold small" style="color:${amtColor};">${amtSign} ${formatCurrency(tx.amount)}</span>
             <div class="d-flex gap-1">
+                <button class="tx-delete" style="background:none;border:none;padding:5px;" onclick="dupTx('${tx.id}')" title="Duplicar"><i class="ph ph-copy text-muted"></i></button>
                 <button class="tx-delete" style="background:none;border:none;padding:5px;" onclick="edTx('${tx.id}')" title="Editar"><i class="ph ph-pencil-simple text-muted"></i></button>
                 <button class="tx-delete" style="background:none;border:none;padding:5px;" onclick="delTx('${tx.id}')" title="Excluir"><i class="ph ph-trash text-muted"></i></button>
             </div>
@@ -1664,18 +1809,35 @@ function renderTransactions(data) {
     const filter        = document.getElementById('tx-filter').value;
     const filterCat     = document.getElementById('tx-filter-category')?.value || 'all';
     const filterAcc     = document.getElementById('tx-filter-account')?.value   || 'all';
+    const searchRaw     = document.getElementById('tx-search')?.value || '';
+    const searchTerm    = searchRaw.toLowerCase().trim();
+
+    // Toggle clear button visibility
+    const clearBtn = document.getElementById('tx-search-clear');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !searchTerm);
 
     let filtered = data.transactions;
     if (filter !== 'all')    filtered = filtered.filter(t => t.type === filter);
     if (filterCat !== 'all') filtered = filtered.filter(t => t.category === filterCat);
     if (filterAcc !== 'all') filtered = filtered.filter(t => t.accountId === filterAcc || t.destinationId === filterAcc);
     if (_currentMonth)       filtered = filtered.filter(t => t.date.startsWith(_currentMonth));
+    if (searchTerm)          filtered = filtered.filter(t => t.description?.toLowerCase().includes(searchTerm));
+
+    // Update result count badge
+    const countBadge = document.getElementById('tx-result-count');
+    const hasActiveFilter = filter !== 'all' || filterCat !== 'all' || filterAcc !== 'all' || searchTerm;
+    if (countBadge) {
+        countBadge.classList.toggle('hidden', !hasActiveFilter);
+        if (hasActiveFilter) countBadge.textContent = `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''}`;
+    }
 
     const sorted = [...filtered].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    const EMPTY_MSG = filterCat !== 'all' || filterAcc !== 'all'
-        ? 'Nenhuma transação com os filtros aplicados.'
-        : 'Nenhuma transação encontrada.';
+    const EMPTY_MSG = searchTerm
+        ? `Nenhuma transação encontrada para "${searchRaw}".`
+        : (filterCat !== 'all' || filterAcc !== 'all')
+            ? 'Nenhuma transação com os filtros aplicados.'
+            : 'Nenhuma transação encontrada.';
 
     if (!sorted.length) {
         tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4 small">${EMPTY_MSG}</td></tr>`;
@@ -1713,6 +1875,7 @@ function renderTransactions(data) {
             <td class="fw-semibold small" style="color:${amtColor};">${amtSign} ${formatCurrency(tx.amount)}</td>
             <td class="text-end">
                 <div class="d-flex justify-content-end gap-1">
+                    <button class="btn-icon" onclick="dupTx('${tx.id}')" title="Duplicar"><i class="ph ph-copy"></i></button>
                     <button class="btn-icon" onclick="edTx('${tx.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                     <button class="btn-icon danger" onclick="delTx('${tx.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
                 </div>
@@ -1736,6 +1899,7 @@ function renderTransactions(data) {
             <div class="tx-mobile-right">
                 <span class="tx-mobile-amount" style="color:${amtColor};">${amtSign}${formatCurrency(tx.amount)}</span>
                 <div class="tx-mobile-actions">
+                    <button class="btn-icon" onclick="dupTx('${tx.id}')"><i class="ph ph-copy"></i></button>
                     <button class="btn-icon" onclick="edTx('${tx.id}')"><i class="ph ph-pencil-simple"></i></button>
                     <button class="btn-icon danger" onclick="delTx('${tx.id}')"><i class="ph ph-trash"></i></button>
                 </div>
