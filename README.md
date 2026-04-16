@@ -27,19 +27,37 @@ A proposta é simples: **uma ferramenta poderosa que você realmente controla.**
 
 ### 🏠 Dashboard
 - Saldo geral consolidado com indicador visual de positivo/negativo
-- Visão rápida de todas as contas bancárias e faturas de cartões
-- Gráfico de rosca (doughnut) com gastos por categoria do mês
+- Visão rápida de todas as contas bancárias e faturas de cartões com saldo em tempo real
+- Gráfico de rosca interativo com gastos por categoria do mês
 - Cards de entradas e despesas do mês atual
-- Lista de transações recentes (últimas 5)
+- Lista de transações recentes com layout compacto — título, categoria e valor na mesma linha
+- Orçamento mensal por categoria com barras de progresso coloridas e alertas de excesso
 - Alerta de contas futuras a pagar
 
 ### 💸 Movimentação
-- Histórico completo de transações com filtro por tipo (entradas, gastos, transferências)
-- Navegador de meses com seta para frente/trás
+- Busca em tempo real por descrição com badge de contagem de resultados
+- Filtros compactos de tipo, categoria e conta na mesma linha do título
+- Seletor de conta com separadores visuais: `─── Contas Bancárias` 🏦 / `─── Cartões de Crédito` 💳
+- Navegador de meses integrado com seletor de modo de visualização
 - Três modos de visualização:
-  - **Lista** — tabela detalhada com ações de editar/excluir
+  - **Lista** — tabela detalhada com data inline ao título
   - **Caminho (Sankey)** — fluxo visual de entrada → orçamento → categorias de gasto
-  - **Solar (Sunburst)** — gráfico hierárquico de despesas por categoria e item
+  - **Solar (Sunburst)** — gráfico hierárquico por categoria, com suporte a tema claro/escuro
+- Botão de **duplicar transação** (pré-preenche o formulário com os dados, data de hoje)
+- **Confirmação de exclusão rica** — modal com nome, tipo, data e valor antes de deletar
+
+### ⌨️ Atalhos de Teclado
+| Tecla | Ação |
+|---|---|
+| `N` | Nova transação |
+| `D` | Dashboard |
+| `L` | Lançamentos (Movimentação) |
+| `C` | Contas / Cartões |
+| `B` | Backup |
+| `,` | Configurações |
+| `/` | Focar campo de busca |
+| `?` | Mostrar todos os atalhos |
+| `Esc` | Fechar modal ou painel |
 
 ### 📈 Projeção
 - Estimativa de evolução do patrimônio para os próximos 12 meses
@@ -54,13 +72,23 @@ A proposta é simples: **uma ferramenta poderosa que você realmente controla.**
 - Pagamento de fatura com débito automático na conta selecionada
 - Barra de uso do limite com alerta de cor (verde → amarelo → vermelho)
 
+### ⚙️ Configurações
+Painel lateral (offcanvas) acessível pelo ícone de engrenagem no desktop ou menu hamburguer no mobile.
+
+- **Tema claro/escuro** — switch com persistência no Memory Card
+- **Categorias personalizadas** — adicionar, remover e alterar a cor de cada categoria; cores refletem nos gráficos, badges e barras de orçamento
+- **Atalhos de teclado** — lista completa consultável a qualquer momento
+- **Limpar dados do navegador** — apaga sessionStorage e localStorage com confirmação
+
 ### 💾 Backup — Memory Card
 - **Exportação `.xlsx` com formatação premium:**
   - Aba `📊 Resumo` com KPIs coloridos do mês e tabela de gastos por categoria
   - Aba `💸 Transações` com autofilter ativo e células coloridas por tipo
   - Aba `🏦 Contas`, `💳 Cartões` e `🧾 Faturas` formatadas e prontas para análise
-  - Abas de compatibilidade para reimportação sem perda de dados
-- **Importação** de qualquer backup gerado pelo app
+  - Aba `📋 Como usar` — guia offline de preenchimento
+  - Aba `✏️ Nova Transação` — 50 linhas formatadas para lançar dados sem abrir o app; importadas automaticamente na próxima carga
+  - Abas técnicas de reimportação: `Transacoes`, `Contas`, `Cartoes`, `FaturasCartao`, `Configuracoes`
+- **Importação** restaura dados, categorias, cores e tema do backup
 - Autosave em `localStorage` como camada extra de segurança
 - Alerta de backup não salvo ao tentar fechar a aba
 
@@ -70,8 +98,9 @@ A proposta é simples: **uma ferramenta poderosa que você realmente controla.**
 
 A interface foi construída com experiência mobile como prioridade:
 
-- **Bottom Tab Bar nativa** em smartphones com os 5 atalhos principais
-- **Botão + flutuante** central para adicionar transações com um toque
+- **Bottom Tab Bar nativa** em smartphones (Dashboard, Movimentação, +, Contas, Backup)
+- **Botão + central** com gradiente para adicionar transações com um toque
+- **Menu hamburguer** no canto direito da navbar para acessar Configurações
 - **Modais em bottom sheet** (deslizam de baixo para cima)
 - Suporte a **safe-area** em iPhones com notch / Dynamic Island
 - Alvos de toque mínimos de 40×40px em todos os botões de ação
@@ -83,10 +112,10 @@ A interface foi construída com experiência mobile como prioridade:
 
 ```
 planner-financeiro/
-├── index.html      # Estrutura HTML, modais e views
-├── styles.css      # Design system, tema dark, responsividade
+├── index.html      # Estrutura HTML, modais, offcanvas e views
+├── styles.css      # Design system, temas claro/escuro, responsividade
 ├── app.js          # Lógica de UI, renderização, navegação, exportação Excel
-└── storage.js      # Engine de dados: CRUD de contas, cartões e transações
+└── storage.js      # Engine de dados: CRUD, configurações e formatadores
 ```
 
 > O projeto é **zero-dependency no servidor** — abra o `index.html` direto no navegador ou sirva via qualquer host estático (GitHub Pages, Netlify, Vercel etc.).
@@ -96,14 +125,12 @@ planner-financeiro/
 ## 🚀 Como usar
 
 ### Opção 1 — Abrir localmente
-1. Clique no botão Code localizado no topo desta página, à direita
-2. No menu suspenso, selecione a opção Download ZIP
-3. Após o download, extraia o conteúdo do arquivo .zip em uma pasta de sua preferência
-4. Navegue até a pasta extraída e abra o arquivo index.html em seu navegador (clique duplo ou arraste para uma aba aberta)
+1. Clique no botão **Code** no topo desta página e selecione **Download ZIP**
+2. Extraia o conteúdo e abra o `index.html` no navegador
+
 ```bash
 git clone https://github.com/RY0UK3N/Planner.git
 cd planner
-# Abra o index.html no navegador
 open index.html        # macOS
 start index.html       # Windows
 xdg-open index.html    # Linux
@@ -123,9 +150,9 @@ Conecte o repositório e faça o deploy. Não há build step — o projeto já e
 
 | Biblioteca | Versão | Uso |
 |---|---|---|
-| [Bootstrap](https://getbootstrap.com/) | 5.3.3 | Layout, grid, modais, utilitários |
-| [Chart.js](https://www.chartjs.org/) | latest | Gráfico de rosca do dashboard |
-| [Apache ECharts](https://echarts.apache.org/) | 5.4.3 | Gráficos Sankey e Sunburst |
+| [Bootstrap](https://getbootstrap.com/) | 5.3.3 | Layout, grid, modais, offcanvas |
+| [Chart.js](https://www.chartjs.org/) | latest | Gráfico de rosca e comparativo mensal |
+| [Apache ECharts](https://echarts.apache.org/) | 5.4.3 | Gráficos Sankey, Sunburst e Projeção |
 | [SheetJS (XLSX)](https://sheetjs.com/) | 0.18.5 | Exportação e importação de `.xlsx` |
 | [Phosphor Icons](https://phosphoricons.com/) | latest | Ícones da interface |
 | [Google Fonts — Inter](https://fonts.google.com/specimen/Inter) | — | Tipografia |
@@ -142,7 +169,7 @@ Nenhum dado sai do seu dispositivo.
 - **Autosave local:** `localStorage` — persiste entre sessões no mesmo navegador
 - **Backup permanente:** arquivo `.xlsx` salvo por você, onde quiser
 
-O arquivo `.xlsx` é o seu "Memory Card". Carregue-o ao abrir o app, salve-o ao terminar. Simples assim.
+O arquivo `.xlsx` é o seu "Memory Card". Ele carrega não só as transações mas também suas categorias personalizadas, cores e preferência de tema. Carregue-o ao abrir o app, salve-o ao terminar.
 
 ---
 
@@ -167,7 +194,7 @@ Contribuições são bem-vindas! Para mudanças, abra uma issue primeiro para di
 
 1. Fork o projeto
 2. Crie sua branch (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'Add: nova funcionalidade'`)
+3. Commit suas mudanças (`git commit -m 'feat: nova funcionalidade'`)
 4. Push para a branch (`git push origin feature/nova-funcionalidade`)
 5. Abra um Pull Request
 
@@ -183,6 +210,6 @@ Copyright (c) 2026 **Marcos Luciano Tagliari Junior**
 
 <div align="center">
 
-Feito com ☕ e JavaScript puro por **Marcos Luciano Tagliari Junior** &nbsp;·&nbsp; Nenhum dado seu foi para nenhum servidor
+Feito com ☕ e JavaScript. Nenhum dado seu foi para nenhum servidor
 
 </div>

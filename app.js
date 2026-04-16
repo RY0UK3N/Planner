@@ -1106,9 +1106,14 @@ function applyTheme(theme) {
     document.documentElement.setAttribute('data-bs-theme', theme);
     document.querySelector('meta[name="theme-color"]')
         ?.setAttribute('content', theme === 'dark' ? '#0d0d14' : '#f8fafc');
-    // Atualiza toggle na view de configurações
     const tog = document.getElementById('settings-theme-toggle');
     if (tog) tog.checked = theme === 'light';
+    // Re-render ECharts se visível
+    if (_movViewMode === 'sunburst' || _movViewMode === 'sankey') {
+        setTimeout(() => renderMovimentacao(getData()), 50);
+    }
+    // Atualiza gráfico de rosca (centro usa cor hardcoded)
+    if (_summaryChart) _summaryChart.update('none');
 }
 
 function toggleTheme() {
@@ -1358,19 +1363,19 @@ function _populateMovFilters(data) {
     catSel.innerHTML = '<option value="all">Categoria</option>' +
         cats.map(c => `<option value="${c}" ${c === prevCat ? 'selected' : ''}>${c}</option>`).join('');
 
-    // Contas + cartões com separadores visuais
+    // Contas + cartões sem ícones
     let accHtml = '<option value="all">Conta</option>';
     if (data.accounts.length) {
         accHtml += '<optgroup label="─── Contas Bancárias">';
         data.accounts.forEach(a => {
-            accHtml += `<option value="${a.id}" ${a.id === prevAcc ? 'selected' : ''}>🏦 ${a.name}</option>`;
+            accHtml += `<option value="${a.id}" ${a.id === prevAcc ? 'selected' : ''}>${a.name}</option>`;
         });
         accHtml += '</optgroup>';
     }
     if (data.cards.length) {
         accHtml += '<optgroup label="─── Cartões de Crédito">';
         data.cards.forEach(c => {
-            accHtml += `<option value="${c.id}" ${c.id === prevAcc ? 'selected' : ''}>💳 ${c.name}</option>`;
+            accHtml += `<option value="${c.id}" ${c.id === prevAcc ? 'selected' : ''}>${c.name}</option>`;
         });
         accHtml += '</optgroup>';
     }
@@ -1545,6 +1550,7 @@ function renderProjection(data) {
                 markLine: {
                     silent: true,
                     lineStyle: { color: 'rgba(255,255,255,0.15)', type: 'dashed' },
+                    label: { show: false },
                     data: [{ yAxis: 0 }]
                 }
             },
@@ -1765,30 +1771,35 @@ function renderDashboard(data) {
 }
 
 function _renderTxItem(container, tx, data, compact) {
-    const isIncome = tx.type === 'income';
+    const isIncome   = tx.type === 'income';
     const isTransfer = tx.type === 'transfer';
-    const icon = isIncome ? 'ph-arrow-up-right' : (isTransfer ? 'ph-arrows-left-right' : 'ph-arrow-down-left');
-    const amtColor = isIncome ? 'var(--color-primary)' : (isTransfer ? '#f1f5f9' : 'var(--color-expense)');
-    const amtSign = isIncome ? '+' : (isTransfer ? '' : '-');
-    const installBadge = tx.totalInstallments > 1 ? `<span class="tag installments">${tx.totalInstallments} parcelas</span>` : '';
+    const icon     = isIncome ? 'ph-arrow-up-right' : (isTransfer ? 'ph-arrows-left-right' : 'ph-arrow-down-left');
+    const amtColor = isIncome ? 'var(--color-primary)' : (isTransfer ? 'var(--color-transfer)' : 'var(--color-expense)');
+    const amtSign  = isIncome ? '+' : (isTransfer ? '' : '-');
+    const installBadge = tx.totalInstallments > 1 ? `<span class="tag installments">${tx.currentInstallment ?? tx.totalInstallments}/${tx.totalInstallments}</span>` : '';
     const catBadge = _catBadge(tx.category);
-    const recurBadge = tx.recurring ? `<span class="tag recurring">🔁 Recorrente</span>` : '';
+    const recurBadge = tx.recurring ? `<span class="tag recurring">🔁</span>` : '';
 
     container.innerHTML += `
     <li class="tx-item">
-        <div class="d-flex align-items-center gap-2">
+        <div class="tx-item-icon">
             <div class="tx-icon ${tx.type}"><i class="ph ${icon}"></i></div>
-            <div>
-                <div class="small fw-semibold">${tx.description}</div>
-                <div class="mt-1">${catBadge}${installBadge}${recurBadge}<span class="text-muted tiny">• ${formatDate(tx.date)}</span></div>
-            </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <span class="fw-semibold small" style="color:${amtColor};">${amtSign} ${formatCurrency(tx.amount)}</span>
-            <div class="d-flex gap-1">
-                <button class="tx-delete" style="background:none;border:none;padding:5px;" onclick="dupTx('${tx.id}')" title="Duplicar"><i class="ph ph-copy text-muted"></i></button>
-                <button class="tx-delete" style="background:none;border:none;padding:5px;" onclick="edTx('${tx.id}')" title="Editar"><i class="ph ph-pencil-simple text-muted"></i></button>
-                <button class="tx-delete" style="background:none;border:none;padding:5px;" onclick="delTx('${tx.id}')" title="Excluir"><i class="ph ph-trash text-muted"></i></button>
+        <div class="tx-item-body">
+            <div class="tx-item-top">
+                <span class="tx-item-desc">${tx.description}</span>
+                <span class="tx-item-amount" style="color:${amtColor};">${amtSign}${formatCurrency(tx.amount)}</span>
+            </div>
+            <div class="tx-item-bottom">
+                <div class="tx-item-tags">${catBadge}${installBadge}${recurBadge}</div>
+                <div class="tx-item-meta">
+                    <span class="tx-item-date">${formatDate(tx.date)}</span>
+                    <div class="tx-item-actions">
+                        <button onclick="dupTx('${tx.id}')" title="Duplicar"><i class="ph ph-copy"></i></button>
+                        <button onclick="edTx('${tx.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                        <button onclick="delTx('${tx.id}')" title="Excluir" class="danger"><i class="ph ph-trash"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
     </li>`;
@@ -1865,13 +1876,15 @@ function renderTransactions(data) {
                 <div class="d-flex align-items-center gap-2">
                     <i class="ph ${icon}" style="font-size:1.1rem;color:${amtColor};"></i>
                     <div>
-                        <div class="fw-semibold small">${tx.description}</div>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <span class="fw-semibold small">${tx.description}</span>
+                            <span class="text-muted" style="font-size:0.72rem;">${formatDate(tx.date)}</span>
+                        </div>
                         <div class="mt-1">${catBadge}${installBadge}</div>
                     </div>
                 </div>
             </td>
             <td class="text-muted small">${displayAcc}</td>
-            <td class="text-muted small">${formatDate(tx.date)}</td>
             <td class="fw-semibold small" style="color:${amtColor};">${amtSign} ${formatCurrency(tx.amount)}</td>
             <td class="text-end">
                 <div class="d-flex justify-content-end gap-1">
@@ -1888,12 +1901,14 @@ function renderTransactions(data) {
             <div class="tx-mobile-left">
                 <div class="tx-icon ${tx.type}"><i class="ph ${icon}"></i></div>
                 <div class="tx-mobile-info">
-                    <div class="tx-mobile-desc">${tx.description}</div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <span class="tx-mobile-desc">${tx.description}</span>
+                        ${catBadge}${installBadge}
+                    </div>
                     <div class="tx-mobile-meta">
                         <span class="tx-mobile-acc"><i class="ph ph-bank"></i> ${displayAcc}</span>
                         <span class="tx-mobile-date">${formatDate(tx.date)}</span>
                     </div>
-                    <div class="tx-mobile-tags">${catBadge}${installBadge}</div>
                 </div>
             </div>
             <div class="tx-mobile-right">
@@ -2235,6 +2250,14 @@ function renderSunburst(data) {
 
     const chart = _getFluxoChart(chartDom);
 
+    // Theme-aware colors
+    const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+    const labelColor  = isDark ? '#94a3b8' : '#334155';
+    const tooltipBg   = isDark ? '#1c1c22' : '#ffffff';
+    const tooltipBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)';
+    const tooltipText = isDark ? '#f1f5f9' : '#0f172a';
+    const borderColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.8)';
+
     const txs = data.transactions.filter(t => t.date.startsWith(mStr));
     const expenseTxs = txs.filter(t => t.type === 'expense');
     const totalMthExp = expenseTxs.reduce((s, t) => s + t.amount, 0);
@@ -2254,17 +2277,23 @@ function renderSunburst(data) {
 
     const sunburstData = Object.entries(categoriesMap).map(([cat, info]) => ({
         name: cat, value: info.total,
-        itemStyle: { color: COLOR_MAP[cat] || '#475569' },
-        children: info.items.map(it => ({ name: it.name, value: it.value, itemStyle: { opacity: 0.7 } }))
+        itemStyle: { color: COLOR_MAP[cat] || '#475569', borderColor, borderWidth: 2 },
+        label: { color: labelColor },
+        children: info.items.map(it => ({
+            name: it.name, value: it.value,
+            itemStyle: { opacity: 0.75, borderColor, borderWidth: 1 },
+            label: { color: labelColor }
+        }))
     }));
 
     chart.setOption({
         backgroundColor: 'transparent',
         graphic: [],
         tooltip: {
-            backgroundColor: '#1e1e2a',
-            borderColor: 'rgba(255,255,255,0.1)',
-            textStyle: { color: '#f1f5f9' },
+            backgroundColor: tooltipBg,
+            borderColor: tooltipBorder,
+            borderWidth: 1,
+            textStyle: { color: tooltipText, fontSize: 13 },
             formatter: (params) => {
                 const val = formatCurrency(params.value);
                 const pct = totalMthExp > 0 ? ((params.value / totalMthExp) * 100).toFixed(1) : '0';
@@ -2277,8 +2306,16 @@ function renderSunburst(data) {
             emphasis: { focus: 'ancestor' }, nodeClick: 'link',
             levels: [
                 {},
-                { r0: '15%', r: '45%', label: { rotate: 'tangential', fontSize: 10, fontWeight: 'bold' }, itemStyle: { borderWidth: 2 } },
-                { r0: '45%', r: '75%', label: { position: 'outside', padding: 3, silent: false, fontSize: 9 }, itemStyle: { borderWidth: 1, opacity: 0.8 } }
+                {
+                    r0: '15%', r: '48%',
+                    label: { rotate: 'tangential', fontSize: 11, fontWeight: 'bold', color: labelColor },
+                    itemStyle: { borderWidth: 2, borderColor }
+                },
+                {
+                    r0: '48%', r: '78%',
+                    label: { position: 'outside', padding: 3, silent: false, fontSize: 10, color: labelColor },
+                    itemStyle: { borderWidth: 1, borderColor, opacity: 0.82 }
+                }
             ]
         }]
     }, true);
@@ -2361,7 +2398,8 @@ function renderChart(data) {
         _summaryChart.data.labels = labels;
         _summaryChart.data.datasets[0].data = chartData;
         _summaryChart.data.datasets[0].backgroundColor = labels.map(l => COLOR_MAP[l] || '#475569');
-        _summaryChart._totalExpense = totalExpense; // passa pro plugin
+        _summaryChart.data.datasets[0].offset = 0;
+        _summaryChart._totalExpense = totalExpense;
         _summaryChart.update('active');
         return;
     }
@@ -2373,34 +2411,52 @@ function renderChart(data) {
             datasets: [{
                 data: chartData,
                 backgroundColor: labels.map(l => COLOR_MAP[l] || '#475569'),
-                borderWidth: 0, hoverOffset: 10, cutout: '75%'
+                borderWidth: 2,
+                borderColor: 'transparent',
+                hoverOffset: 10,
+                offset: 0,
+                cutout: '68%'
             }]
         },
         options: {
             responsive: true, maintainAspectRatio: false,
+            animation: { animateRotate: true, animateScale: false },
+            layout: { padding: { top: 6, bottom: 6 } },
             plugins: {
-                legend: { position: 'right', labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle', padding: 15, font: { size: 11 } } },
+                legend: { display: false },
                 tooltip: {
                     backgroundColor: '#1e1e2a', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1,
                     titleColor: '#f1f5f9', bodyColor: '#94a3b8', padding: 10, cornerRadius: 10,
-                    callbacks: { label: c => ` ${formatCurrency(c.raw)} (${((c.raw / totalExpense) * 100).toFixed(1)}%)` }
+                    callbacks: { label: c => ` ${c.label}: ${formatCurrency(c.raw)} (${((c.raw / totalExpense) * 100).toFixed(1)}%)` }
                 }
             }
         },
         plugins: [{
             id: 'centerText',
-            afterDraw: chart => {
+            beforeDraw: chart => {
                 const { ctx: c, chartArea: { top, left, width, height } } = chart;
                 const total = chart._totalExpense ?? chart.data.datasets[0].data.reduce((s, v) => s + v, 0);
+                const isDark = document.documentElement.getAttribute('data-bs-theme') !== 'light';
+                const cx = left + width / 2;
+                const cy = top + height / 2;
                 c.save();
-                c.font = 'bold 14px sans-serif'; c.fillStyle = '#f1f5f9';
-                c.textAlign = 'center'; c.textBaseline = 'middle';
-                c.fillText(formatCurrency(total), left + width / 2, top + height / 2);
+                c.font = 'bold 11px Inter, sans-serif';
+                c.fillStyle = isDark ? '#64748b' : '#94a3b8';
+                c.textAlign = 'center';
+                c.textBaseline = 'middle';
+                c.fillText('TOTAL', cx, cy - 10);
+                c.font = 'bold 15px Inter, sans-serif';
+                c.fillStyle = isDark ? '#f1f5f9' : '#1e293b';
+                c.fillText(formatCurrency(total), cx, cy + 8);
                 c.restore();
             }
         }]
     });
     _summaryChart._totalExpense = totalExpense;
+    // Fix: arco pode ficar "aberto" no desktop se o container ainda não tinha
+    // dimensões finais quando o Chart.js calculou o layout. Dois frames garantem
+    // que o CSS já assentou antes do resize.
+    requestAnimationFrame(() => setTimeout(() => _summaryChart?.resize(), 0));
 }
 
 /* ============================================================
