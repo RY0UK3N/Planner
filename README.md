@@ -1,6 +1,6 @@
 <div align="center">
 
-# 💰 Planner Financeiro Pessoal
+# Plannke
 
 **Controle total das suas finanças — sem servidor, sem cadastro, sem nuvem.**  
 Seus dados ficam onde devem ficar: com você.
@@ -17,7 +17,7 @@ Seus dados ficam onde devem ficar: com você.
 
 ## 📖 Sobre o projeto
 
-O **Planner Financeiro Pessoal** é uma aplicação web 100% client-side para gestão de finanças pessoais. Não há backend, banco de dados em nuvem ou autenticação. Todos os seus dados trafegam e residem exclusivamente no seu dispositivo — o "Memory Card" é um arquivo `.xlsx` que você salva e carrega quando quiser, como um videogame antigo.
+O **Plannke** é uma aplicação web 100% client-side para gestão de finanças pessoais. Não há backend, banco de dados em nuvem ou autenticação. Todos os seus dados trafegam e residem exclusivamente no seu dispositivo — o "Memory Card" é um arquivo `.xlsx` que você salva e carrega quando quiser, como um videogame antigo.
 
 A proposta é simples: **uma ferramenta poderosa que você realmente controla.**
 
@@ -111,7 +111,7 @@ A interface foi construída com experiência mobile como prioridade:
 ## 🗂️ Estrutura do projeto
 
 ```
-planner-financeiro/
+Planner/
 ├── index.html      # Estrutura HTML, modais, offcanvas e views
 ├── styles.css      # Design system, temas claro/escuro, responsividade
 ├── app.js          # Lógica de UI, renderização, navegação, exportação Excel
@@ -130,7 +130,7 @@ planner-financeiro/
 
 ```bash
 git clone https://github.com/RY0UK3N/Planner.git
-cd planner
+cd Planner
 open index.html        # macOS
 start index.html       # Windows
 xdg-open index.html    # Linux
@@ -210,6 +210,6 @@ Copyright (c) 2026 **Marcos Luciano Tagliari Junior**
 
 <div align="center">
 
-Feito com ☕ e JavaScript. Nenhum dado seu foi para nenhum servidor
+Feito com ☕ e JavaScript. Nenhum dado seu foi para nenhum servidor.
 
 </div>
